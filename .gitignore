@@ -1,0 +1,19 @@
+# 虚拟环境
+.venv/
+venv/
+
+# Python 编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# 日志
+*.log
+
+# 环境变量
+.env
+
+# 模板初始化生成的项目目录
+demo-inventory/
+
