@@ -88,4 +88,5 @@
 | [10-权限管理前端操作手册.md](./10-权限管理前端操作手册.md) | 角色管理页操作、用户角色分配、菜单/按钮权限说明、admin 与 operator 权限差异对照 |
 | [11-Excel导出设计(SDD).md](./11-Excel导出设计(SDD).md) | 6 个模块 Excel 导出：后端 openpyxl + StreamingResponse、前端 blob 下载、权限与列定义 |
 | [12-Docker部署设计(SDD).md](./12-Docker部署设计(SDD).md) | Docker 容器化部署：mysql/backend/frontend/redis 四服务编排、镜像构建、初始化与持久化 |
+| [API接口清单.md](./API接口清单.md) | 全量接口清单：按模块列出方法、路径、鉴权、RBAC 权限、请求参数与响应格式 |
 | [changelog.md](./changelog.md) | 文档变更记录 |
