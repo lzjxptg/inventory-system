@@ -7,6 +7,7 @@
       <el-form-item>
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
+        <el-button type="warning" v-permission="'reports:view'" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -39,7 +40,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getLowStockAlerts } from '@/api/reports'
+import { ElMessage } from 'element-plus'
+import { getLowStockAlerts, exportLowStockAlerts } from '@/api/reports'
+import { downloadBlob } from '@/utils/download'
 import type { LowStockAlertItem } from '@/types'
 
 const list = ref<LowStockAlertItem[]>([])
@@ -73,6 +76,17 @@ function handleReset() {
   warehouseId.value = undefined
   page.value = 1
   load()
+}
+
+async function handleExport() {
+  try {
+    const blob = await exportLowStockAlerts({
+      warehouse_id: warehouseId.value,
+    })
+    downloadBlob(blob, `低库存预警_${Date.now()}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(load)

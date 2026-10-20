@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.dependencies import get_current_user
+from core.excel_export import build_excel_bytes, dated_filename, excel_response
+from core.permissions import require_permission
 from core.response import error, success
 from crud.purchase import (
     approve_order,
@@ -75,6 +77,33 @@ def list_orders_api(
     return success(
         data=[PurchaseOrderResponse.model_validate(item).model_dump() for item in items]
     )
+
+
+@router.get("/orders/export", dependencies=[Depends(require_permission("purchase:view"))])
+def export_orders(
+    status: str | None = Query(default=None, description="按订单状态筛选"),
+    supplier_id: int | None = Query(default=None, description="按供应商ID筛选"),
+    keyword: str | None = Query(default=None, description="按订单号/备注关键字筛选"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """导出采购订单 Excel（受相同筛选条件约束，不分页）。"""
+    items = list_orders(
+        db, skip=0, limit=100000, status=status, supplier_id=supplier_id, keyword=keyword
+    )
+    headers = [
+        "ID", "订单号", "供应商", "仓库", "状态", "总数量", "总金额", "备注", "创建时间",
+    ]
+    rows = [
+        [
+            o.id, o.order_no, o.supplier_name, o.warehouse_name, o.status,
+            float(o.total_quantity), float(o.total_amount), o.remark,
+            o.created_at.strftime("%Y-%m-%d %H:%M:%S") if o.created_at else "",
+        ]
+        for o in items
+    ]
+    data = build_excel_bytes(headers, rows)
+    return excel_response(data, dated_filename("采购订单"))
 
 
 @router.get("/orders/{order_id}")

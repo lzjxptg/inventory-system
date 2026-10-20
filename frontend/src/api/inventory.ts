@@ -1,4 +1,6 @@
+import axios from 'axios'
 import request from './request'
+import { getToken } from '@/utils/auth'
 import type { ApiResponse, InventoryBalance, StockMovement } from '@/types'
 
 export interface BalanceQuery {
@@ -24,4 +26,15 @@ export function getInventoryBalances(params?: BalanceQuery): Promise<ApiResponse
 // 库存流水列表
 export function getStockMovements(params?: MovementQuery): Promise<ApiResponse<StockMovement[]>> {
   return request.get('/inventory/movements', { params })
+}
+
+// 导出库存流水 Excel（axios 直连，绕过 request 响应拦截器）
+export function exportStockMovements(params?: Omit<MovementQuery, 'skip' | 'limit'>): Promise<Blob> {
+  return axios
+    .get('/api/v1/inventory/movements/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
 }

@@ -12,6 +12,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" :disabled="!canQuery" @click="load">查询</el-button>
+        <el-button type="warning" v-permission="'reports:view'" :disabled="!canQuery" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -52,12 +53,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
-import { getSalesSummary } from '@/api/reports'
+import { getSalesSummary, exportSalesSummary } from '@/api/reports'
+import { downloadBlob } from '@/utils/download'
 import type { SalesSummaryData } from '@/types'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent])
@@ -108,6 +111,23 @@ async function load() {
     summary.value = res.data || summary.value
   } catch {
     /* 错误由拦截器统一提示 */
+  }
+}
+
+async function handleExport() {
+  if (!canQuery.value) {
+    ElMessage.warning('请选择起始和截止日期')
+    return
+  }
+  try {
+    const blob = await exportSalesSummary({
+      start_date: startDate.value,
+      end_date: endDate.value,
+      customer_id: customerId.value,
+    })
+    downloadBlob(blob, `销售统计_${Date.now()}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败')
   }
 }
 

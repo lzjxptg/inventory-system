@@ -1,4 +1,6 @@
+import axios from 'axios'
 import request from './request'
+import { getToken } from '@/utils/auth'
 import type {
   ApiResponse,
   PageResult,
@@ -55,4 +57,41 @@ export function getSalesSummary(
   params: Pick<DateRangeQuery, 'start_date' | 'end_date' | 'customer_id'>,
 ): Promise<ApiResponse<SalesSummaryData>> {
   return request.get('/reports/sales-summary', { params })
+}
+
+// 导出低库存预警 Excel（axios 直连，绕过 request 响应拦截器）
+export function exportLowStockAlerts(params?: Omit<LowStockQuery, 'page' | 'page_size'>): Promise<Blob> {
+  return axios
+    .get('/api/v1/reports/low-stock-alerts/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
+}
+
+// 导出采购统计 Excel
+export function exportPurchaseSummary(
+  params: Pick<DateRangeQuery, 'start_date' | 'end_date' | 'supplier_id'>,
+): Promise<Blob> {
+  return axios
+    .get('/api/v1/reports/purchase-summary/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
+}
+
+// 导出销售统计 Excel
+export function exportSalesSummary(
+  params: Pick<DateRangeQuery, 'start_date' | 'end_date' | 'customer_id'>,
+): Promise<Blob> {
+  return axios
+    .get('/api/v1/reports/sales-summary/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
 }

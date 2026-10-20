@@ -1,4 +1,6 @@
+import axios from 'axios'
 import request from './request'
+import { getToken } from '@/utils/auth'
 import type { ApiResponse, PurchaseOrder, PurchaseOrderCreate } from '@/types'
 
 export interface PurchaseOrderQuery {
@@ -12,6 +14,17 @@ export interface PurchaseOrderQuery {
 // 采购订单列表
 export function getPurchaseOrders(params?: PurchaseOrderQuery): Promise<ApiResponse<PurchaseOrder[]>> {
   return request.get('/purchases/orders', { params })
+}
+
+// 导出采购订单 Excel（axios 直连，绕过 request 响应拦截器）
+export function exportPurchaseOrders(params?: Omit<PurchaseOrderQuery, 'skip' | 'limit'>): Promise<Blob> {
+  return axios
+    .get('/api/v1/purchases/orders/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
 }
 
 // 创建采购订单

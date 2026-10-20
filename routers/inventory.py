@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.dependencies import get_current_user
+from core.excel_export import build_excel_bytes, dated_filename, excel_response
+from core.permissions import require_permission
 from core.response import error, success
 from crud.inventory import (
     adjust_inventory,
@@ -136,3 +138,37 @@ def read_inventory_balance(
     if item is None:
         return error(code=404, msg="该商品在该仓库暂无库存记录")
     return success(data=InventoryBalanceOut.model_validate(item).model_dump())
+
+
+@router.get("/movements/export", dependencies=[Depends(require_permission("inventory:view"))])
+def export_stock_movements(
+    product_id: int | None = Query(default=None, description="按商品ID筛选"),
+    warehouse_id: int | None = Query(default=None, description="按仓库ID筛选"),
+    movement_type: str | None = Query(default=None, description="按流水类型筛选"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """导出库存流水 Excel（受相同筛选条件约束，不分页）。"""
+    items = get_stock_movements(
+        db,
+        skip=0,
+        limit=100000,
+        product_id=product_id,
+        warehouse_id=warehouse_id,
+        movement_type=movement_type,
+    )
+    headers = [
+        "ID", "商品", "仓库", "类型", "数量", "关联类型", "关联ID",
+        "操作人", "备注", "时间",
+    ]
+    rows = [
+        [
+            m.id, m.product_name, m.warehouse_name, m.movement_type,
+            float(m.quantity), m.reference_type, m.reference_id,
+            m.operator_name, m.remark,
+            m.created_at.strftime("%Y-%m-%d %H:%M:%S") if m.created_at else "",
+        ]
+        for m in items
+    ]
+    data = build_excel_bytes(headers, rows)
+    return excel_response(data, dated_filename("库存流水"))

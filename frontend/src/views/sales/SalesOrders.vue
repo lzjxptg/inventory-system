@@ -20,6 +20,7 @@
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
         <el-button type="success" @click="$router.push('/sales/create')">新建销售</el-button>
+        <el-button type="warning" v-permission="'sales:view'" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -54,7 +55,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getSalesOrders } from '@/api/sales'
+import { ElMessage } from 'element-plus'
+import { getSalesOrders, exportSalesOrders } from '@/api/sales'
+import { downloadBlob } from '@/utils/download'
 import type { SalesOrder } from '@/types'
 
 const list = ref<SalesOrder[]>([])
@@ -105,6 +108,19 @@ function handleReset() {
   keyword.value = ''
   page.value = 1
   load()
+}
+
+async function handleExport() {
+  try {
+    const blob = await exportSalesOrders({
+      status: status.value,
+      customer_id: customerId.value,
+      keyword: keyword.value || undefined,
+    })
+    downloadBlob(blob, `销售订单_${Date.now()}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(load)

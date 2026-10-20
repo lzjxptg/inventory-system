@@ -17,6 +17,7 @@
       <el-form-item>
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
+        <el-button type="warning" v-permission="'inventory:view'" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -50,7 +51,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getStockMovements } from '@/api/inventory'
+import { ElMessage } from 'element-plus'
+import { getStockMovements, exportStockMovements } from '@/api/inventory'
+import { downloadBlob } from '@/utils/download'
 import type { StockMovement } from '@/types'
 
 const list = ref<StockMovement[]>([])
@@ -96,6 +99,19 @@ function handleReset() {
   movementType.value = undefined
   page.value = 1
   load()
+}
+
+async function handleExport() {
+  try {
+    const blob = await exportStockMovements({
+      product_id: productId.value,
+      warehouse_id: warehouseId.value,
+      movement_type: movementType.value,
+    })
+    downloadBlob(blob, `库存流水_${Date.now()}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(load)
