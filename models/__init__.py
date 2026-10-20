@@ -8,6 +8,7 @@ from .category import Category
 from .customer import Customer
 from .inventory import InventoryBalance, StockMovement
 from .product import Product
+from .role import Permission, Role, RolePermission
 from .purchase import PurchaseIn, PurchaseInItem, PurchaseOrder, PurchaseOrderItem
 from .sales import SalesOrder, SalesOrderItem, SalesOut, SalesOutItem
 from .supplier import Supplier
@@ -19,11 +20,14 @@ __all__ = [
     "Category",
     "Customer",
     "InventoryBalance",
+    "Permission",
     "Product",
     "PurchaseIn",
     "PurchaseInItem",
     "PurchaseOrder",
     "PurchaseOrderItem",
+    "Role",
+    "RolePermission",
     "SalesOrder",
     "SalesOrderItem",
     "SalesOut",

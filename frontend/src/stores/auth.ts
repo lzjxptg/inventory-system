@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { login as loginApi } from '@/api/auth'
+import { getMyPermissions } from '@/api/role'
 import { ElMessage } from 'element-plus'
 import {
   getToken,
@@ -16,18 +17,34 @@ import type { User } from '@/types'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(getToken())
   const user = ref<User | null>(getUserInfo())
+  const permissions = ref<string[]>([])
+
+  async function fetchPermissions(): Promise<void> {
+    try {
+      const res = await getMyPermissions()
+      permissions.value = res.data || []
+    } catch {
+      permissions.value = []
+    }
+  }
 
   async function login(username: string, password: string): Promise<boolean> {
     try {
       const res = await loginApi({ username, password })
       if (res.access_token) {
         token.value = res.access_token
-        // 后端登录接口不返回 user 信息，从 JWT 载荷中解析用户名
+        // 从 JWT 载荷解析用户名与角色
         const payload = decodeJwtPayload(res.access_token)
-        const u: User = { id: 0, username: payload?.sub || username }
+        const u: User = {
+          id: 0,
+          username: payload?.sub || username,
+          role: payload?.role || 'operator',
+        }
         user.value = u
         setToken(res.access_token)
         setUserInfo(u)
+        // 登录后立即获取当前用户权限 code 列表
+        await fetchPermissions()
         ElMessage.success('登录成功')
         return true
       }
@@ -40,10 +57,23 @@ export const useAuthStore = defineStore('auth', () => {
   function logout(): void {
     token.value = ''
     user.value = null
+    permissions.value = []
     removeToken()
     removeUserInfo()
     window.location.href = '/login'
   }
 
-  return { token, user, login, logout }
+  function hasPermission(code: string | string[]): boolean {
+    if (!permissions.value.length) return false
+    return Array.isArray(code)
+      ? code.some((c) => permissions.value.includes(c))
+      : permissions.value.includes(code)
+  }
+
+  function hasRole(roles: string[] | undefined): boolean {
+    if (!roles || !roles.length) return true
+    return !!user.value?.role && roles.includes(user.value.role)
+  }
+
+  return { token, user, permissions, login, logout, fetchPermissions, hasPermission, hasRole }
 })

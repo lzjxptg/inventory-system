@@ -50,5 +50,16 @@ def login(
     if not user.is_active:
         raise UnauthorizedException("用户已被禁用")
 
-    token = create_access_token(data={"sub": user.username})
+    # 解析用户角色 name，role_id 为 NULL 时默认 operator
+    role_name = "operator"
+    if user.role_id is not None:
+        from crud.role import get_role
+
+        role = get_role(db, user.role_id)
+        if role is not None:
+            role_name = role.name
+
+    token = create_access_token(
+        data={"sub": user.username, "role": role_name}
+    )
     return {"access_token": token, "token_type": "bearer"}

@@ -51,6 +51,15 @@
           <el-menu-item index="/reports/purchase">采购统计</el-menu-item>
           <el-menu-item index="/reports/sales">销售统计</el-menu-item>
         </el-sub-menu>
+
+        <el-sub-menu v-if="authStore.hasRole(['admin'])" index="settings">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>系统设置</span>
+          </template>
+          <el-menu-item index="/settings/roles">角色管理</el-menu-item>
+          <el-menu-item index="/settings/user-role">用户角色</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -61,6 +70,9 @@
           <span class="user-info">
             <el-icon><User /></el-icon>
             {{ authStore.user?.username || '用户' }}
+            <el-tag size="small" type="info" class="role-tag">
+              {{ authStore.user?.role || 'operator' }}
+            </el-tag>
             <el-icon><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
@@ -88,6 +100,7 @@ import {
   ShoppingCart,
   Suitcase,
   TrendCharts,
+  Setting,
   User,
   ArrowDown,
 } from '@element-plus/icons-vue'
@@ -142,6 +155,9 @@ function handleCommand(command: string) {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.role-tag {
+  margin-left: 4px;
 }
 .layout-main {
   background-color: #f0f2f5;

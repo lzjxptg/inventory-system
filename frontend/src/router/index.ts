@@ -1,7 +1,18 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { getToken } from '@/utils/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const Layout = () => import('@/components/Layout.vue')
+
+// 扩展 meta 类型
+declare module 'vue-router' {
+  interface RouteMeta {
+    title?: string
+    requiresAuth?: boolean
+    roles?: string[]
+  }
+}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -81,6 +92,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/reports/SalesSummary.vue'),
         meta: { title: '销售统计' },
       },
+      {
+        path: 'settings/roles',
+        name: 'RoleList',
+        component: () => import('@/views/settings/RoleList.vue'),
+        meta: { title: '角色管理', roles: ['admin'] },
+      },
+      {
+        path: 'settings/user-role',
+        name: 'UserRole',
+        component: () => import('@/views/settings/UserRole.vue'),
+        meta: { title: '用户角色', roles: ['admin'] },
+      },
     ],
   },
   {
@@ -95,23 +118,36 @@ const router = createRouter({
 })
 
 // 全局守卫
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const token = getToken()
   if (to.meta.requiresAuth === false) {
-    // 登录页：已登录则跳首页
     if (to.path === '/login' && token) {
       next('/')
     } else {
       next()
     }
-  } else {
-    // 受保护路由：未登录跳登录页
-    if (!token) {
-      next('/login')
-    } else {
-      next()
+    return
+  }
+  // 受保护路由：未登录跳登录页
+  if (!token) {
+    next('/login')
+    return
+  }
+  const auth = useAuthStore()
+  // 页面刷新后 permissions 为空，需重新拉取
+  if (!auth.permissions.length) {
+    await auth.fetchPermissions()
+  }
+  // 角色守卫：若路由配置了 meta.roles，当前用户角色不在白名单则拒绝
+  if (to.meta.roles && to.meta.roles.length) {
+    const role = auth.user?.role || 'operator'
+    if (!to.meta.roles.includes(role)) {
+      ElMessage.warning('无权限访问该页面')
+      next('/dashboard')
+      return
     }
   }
+  next()
 })
 
 export default router

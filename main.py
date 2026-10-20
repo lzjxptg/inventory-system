@@ -21,6 +21,7 @@ from routers import (
     product,
     purchase,
     reports,
+    roles,
     sales,
     supplier,
     unit,
@@ -82,6 +83,7 @@ app.include_router(inventory.router, dependencies=PROTECTED)
 app.include_router(purchase.router, prefix="/api/v1/purchases", dependencies=PROTECTED)
 app.include_router(sales.router, prefix="/api/v1/sales", dependencies=PROTECTED)
 app.include_router(reports.router, dependencies=PROTECTED)
+app.include_router(roles.router, dependencies=PROTECTED)
 
 
 @app.get("/health")

@@ -27,6 +27,14 @@ from .supplier import SupplierCreate, SupplierResponse, SupplierUpdate  # noqa: 
 from .customer import CustomerCreate, CustomerResponse, CustomerUpdate  # noqa: E402
 from .warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate  # noqa: E402
 from .user import Token, UserCreate, UserOut  # noqa: E402
+from .role import (  # noqa: E402
+    PermissionOut,
+    RoleCreate,
+    RolePermissionAssign,
+    RoleResponse,
+    RoleUpdate,
+    UserRoleAssign,
+)
 from .inventory import (  # noqa: E402
     InventoryAdjustRequest,
     InventoryBalanceOut,
@@ -86,6 +94,13 @@ __all__ = [
     "UserCreate",
     "UserOut",
     "Token",
+    # role / permission
+    "RoleCreate",
+    "RoleUpdate",
+    "RoleResponse",
+    "PermissionOut",
+    "RolePermissionAssign",
+    "UserRoleAssign",
     # inventory
     "StockMovementCreate",
     "StockMovementOut",

@@ -30,7 +30,25 @@ export interface User {
   id: number
   username: string
   is_active?: boolean
+  role_id?: number | null
+  role?: string
   created_at?: string
+}
+
+// ---------------- 权限管理 ----------------
+export interface Role {
+  id: number
+  name: string
+  description: string
+  is_deleted?: number
+  created_at?: string
+}
+
+export interface Permission {
+  id: number
+  code: string
+  name: string
+  module: string
 }
 
 // ---------------- 库存 ----------------

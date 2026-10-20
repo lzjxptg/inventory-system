@@ -17,6 +17,7 @@ class UserCreate(_BaseSchema):
 
     username: str = Field(..., max_length=50, description="登录账号")
     password: str = Field(..., min_length=6, max_length=128, description="明文密码")
+    role_id: int | None = Field(default=None, description="角色ID，NULL 默认 operator")
 
 
 class UserOut(_BaseSchema):
@@ -25,6 +26,7 @@ class UserOut(_BaseSchema):
     id: int
     username: str
     is_active: bool
+    role_id: int | None = None
     created_at: datetime
 
 

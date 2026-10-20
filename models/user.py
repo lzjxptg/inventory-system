@@ -4,7 +4,7 @@
 继承 CommonMixin 获取 id、is_deleted、created_at 公共字段。
 """
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import BigInteger, Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
@@ -25,6 +25,9 @@ class User(Base, CommonMixin):
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, comment="是否启用"
+    )
+    role_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("roles.id"), nullable=True, comment="角色ID"
     )
 
     __table_args__ = {"comment": "用户表"}
