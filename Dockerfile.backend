@@ -1,0 +1,23 @@
+# 进销存系统后端镜像
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 安装系统依赖（编译 Python 包可能需要）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 先拷贝依赖文件，利用 Docker 层缓存
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 拷贝全部源码
+COPY . .
+
+# 赋予入口脚本执行权限
+RUN chmod +x scripts/entrypoint.sh
+
+EXPOSE 8002
+
+CMD ["scripts/entrypoint.sh"]

@@ -87,4 +87,5 @@
 | [09-权限管理设计(SDD).md](./09-权限管理设计(SDD).md) | RBAC 数据模型、后端鉴权依赖、前端路由/菜单/按钮三级权限、预置角色 |
 | [10-权限管理前端操作手册.md](./10-权限管理前端操作手册.md) | 角色管理页操作、用户角色分配、菜单/按钮权限说明、admin 与 operator 权限差异对照 |
 | [11-Excel导出设计(SDD).md](./11-Excel导出设计(SDD).md) | 6 个模块 Excel 导出：后端 openpyxl + StreamingResponse、前端 blob 下载、权限与列定义 |
+| [12-Docker部署设计(SDD).md](./12-Docker部署设计(SDD).md) | Docker 容器化部署：mysql/backend/frontend/redis 四服务编排、镜像构建、初始化与持久化 |
 | [changelog.md](./changelog.md) | 文档变更记录 |
