@@ -35,6 +35,14 @@ request.interceptors.response.use(
       if (res.code === 0 || res.code === 200) {
         return res
       }
+      // 认证失败：后端以 HTTP 200 + code 40101 包装，需主动登出并跳转登录
+      if (res.code === 40101) {
+        removeToken()
+        removeUserInfo()
+        ElMessage.error(res.msg || '登录已过期，请重新登录')
+        window.location.href = '/login'
+        return Promise.reject(res)
+      }
       ElMessage.error(res.msg || '请求失败')
       return Promise.reject(res)
     }
