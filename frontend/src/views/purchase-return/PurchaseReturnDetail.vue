@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -70,7 +70,6 @@ import {
 import type { PurchaseReturn } from '@/types'
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
 const detail = ref<PurchaseReturn | null>(null)

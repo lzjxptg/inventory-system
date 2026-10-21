@@ -316,7 +316,7 @@ async function handleSubmit() {
         sku: form.value.sku,
         name: form.value.name,
         category_id: form.value.category_id ?? null,
-        unit_id: form.value.unit_id,
+        unit_id: form.value.unit_id!,
         spec: form.value.spec || null,
         purchase_price: form.value.purchase_price,
         sale_price: form.value.sale_price,

@@ -104,7 +104,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -117,7 +116,6 @@ import {
 import { downloadBlob } from '@/utils/download'
 import type { PurchaseOrder } from '@/types'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const list = ref<PurchaseOrder[]>([])
 const loading = ref(false)
