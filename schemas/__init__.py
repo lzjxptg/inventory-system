@@ -52,6 +52,20 @@ from .purchase import (  # noqa: E402
     PurchaseOrderResponse,
     PurchaseOrderUpdate,
 )
+from .purchase_return import (  # noqa: E402
+    PurchaseReturnCreate,
+    PurchaseReturnItemCreate,
+    PurchaseReturnItemOut,
+    PurchaseReturnResponse,
+    PurchaseReturnUpdate,
+)
+from .sale_return import (  # noqa: E402
+    SalesReturnCreate,
+    SalesReturnItemCreate,
+    SalesReturnItemOut,
+    SalesReturnResponse,
+    SalesReturnUpdate,
+)
 from .sales import (  # noqa: E402
     SalesOutCreate,
     SalesOutItemCreate,
@@ -117,6 +131,18 @@ __all__ = [
     "PurchaseInItemCreate",
     "PurchaseInItemOut",
     "PurchaseInResponse",
+    # purchase return
+    "PurchaseReturnCreate",
+    "PurchaseReturnUpdate",
+    "PurchaseReturnResponse",
+    "PurchaseReturnItemCreate",
+    "PurchaseReturnItemOut",
+    # sales return
+    "SalesReturnCreate",
+    "SalesReturnUpdate",
+    "SalesReturnResponse",
+    "SalesReturnItemCreate",
+    "SalesReturnItemOut",
     # sales
     "SalesOrderCreate",
     "SalesOrderUpdate",

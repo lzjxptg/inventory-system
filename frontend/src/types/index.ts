@@ -369,3 +369,113 @@ export interface CustomerUpdate {
   phone?: string | null
   address?: string | null
 }
+
+// ---------------- 采购退货 ----------------
+export interface PurchaseReturnItem {
+  id: number
+  return_id: number
+  product_id: number
+  quantity: number
+  unit_price: number
+  amount: number
+  batch_no: string | null
+  product_name?: string
+  product_code?: string
+  [key: string]: any
+}
+
+export interface PurchaseReturn {
+  id: number
+  return_no: string
+  purchase_order_id: number
+  supplier_id: number
+  warehouse_id: number
+  return_date: string
+  total_quantity: number
+  total_amount: number
+  status: string
+  reason: string | null
+  created_by: number
+  approved_by: number | null
+  approved_at: string | null
+  created_at: string
+  updated_at: string
+  supplier_name: string
+  warehouse_name: string
+  order_no: string
+  items: PurchaseReturnItem[]
+  [key: string]: any
+}
+
+export interface PurchaseReturnItemCreate {
+  product_id: number
+  quantity: number
+  unit_price?: number | null
+  batch_no?: string | null
+}
+
+export interface PurchaseReturnCreate {
+  purchase_order_id: number
+  reason?: string | null
+  items: PurchaseReturnItemCreate[]
+}
+
+export interface PurchaseReturnUpdate {
+  reason?: string | null
+  items: PurchaseReturnItemCreate[]
+}
+
+// ---------------- 销售退货 ----------------
+export interface SalesReturnItem {
+  id: number
+  return_id: number
+  product_id: number
+  quantity: number
+  unit_price: number
+  amount: number
+  batch_no: string | null
+  product_name?: string
+  product_code?: string
+  [key: string]: any
+}
+
+export interface SalesReturn {
+  id: number
+  return_no: string
+  sales_order_id: number
+  customer_id: number
+  warehouse_id: number
+  return_date: string
+  total_quantity: number
+  total_amount: number
+  status: string
+  reason: string | null
+  created_by: number
+  approved_by: number | null
+  approved_at: string | null
+  created_at: string
+  updated_at: string
+  customer_name: string
+  warehouse_name: string
+  order_no: string
+  items: SalesReturnItem[]
+  [key: string]: any
+}
+
+export interface SalesReturnItemCreate {
+  product_id: number
+  quantity: number
+  unit_price?: number | null
+  batch_no?: string | null
+}
+
+export interface SalesReturnCreate {
+  sales_order_id: number
+  reason?: string | null
+  items: SalesReturnItemCreate[]
+}
+
+export interface SalesReturnUpdate {
+  reason?: string | null
+  items: SalesReturnItemCreate[]
+}

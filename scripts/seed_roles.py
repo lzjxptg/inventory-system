@@ -36,6 +36,14 @@ PERMISSIONS = [
     ("inventory:view", "查看库存", "inventory"),
     ("inventory:in", "入库操作", "inventory"),
     ("inventory:out", "出库操作", "inventory"),
+    # purchase return 模块
+    ("purchase_return:view", "查看采购退货", "purchase_return"),
+    ("purchase_return:create", "创建采购退货", "purchase_return"),
+    ("purchase_return:approve", "审核采购退货", "purchase_return"),
+    # sales return 模块
+    ("sales_return:view", "查看销售退货", "sales_return"),
+    ("sales_return:create", "创建销售退货", "sales_return"),
+    ("sales_return:approve", "审核销售退货", "sales_return"),
     # reports 模块
     ("reports:view", "查看报表", "reports"),
 ]
@@ -55,6 +63,10 @@ OPERATOR_PERMISSIONS = [
     "inventory:view",
     "inventory:in",
     "inventory:out",
+    "purchase_return:view",
+    "purchase_return:create",
+    "sales_return:view",
+    "sales_return:create",
     "reports:view",
 ]
 

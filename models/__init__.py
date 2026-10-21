@@ -10,6 +10,8 @@ from .inventory import InventoryBalance, StockMovement
 from .product import Product
 from .role import Permission, Role, RolePermission
 from .purchase import PurchaseIn, PurchaseInItem, PurchaseOrder, PurchaseOrderItem
+from .purchase_return import PurchaseReturn, PurchaseReturnItem
+from .sale_return import SalesReturn, SalesReturnItem
 from .sales import SalesOrder, SalesOrderItem, SalesOut, SalesOutItem
 from .supplier import Supplier
 from .unit import Unit
@@ -26,12 +28,16 @@ __all__ = [
     "PurchaseInItem",
     "PurchaseOrder",
     "PurchaseOrderItem",
+    "PurchaseReturn",
+    "PurchaseReturnItem",
     "Role",
     "RolePermission",
     "SalesOrder",
     "SalesOrderItem",
     "SalesOut",
     "SalesOutItem",
+    "SalesReturn",
+    "SalesReturnItem",
     "StockMovement",
     "Supplier",
     "Unit",

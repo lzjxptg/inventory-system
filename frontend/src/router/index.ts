@@ -93,6 +93,30 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '编辑采购' },
       },
       {
+        path: 'purchase-returns',
+        name: 'PurchaseReturnList',
+        component: () => import('@/views/purchase-return/PurchaseReturnList.vue'),
+        meta: { title: '采购退货' },
+      },
+      {
+        path: 'purchase-returns/create',
+        name: 'PurchaseReturnCreate',
+        component: () => import('@/views/purchase-return/PurchaseReturnCreate.vue'),
+        meta: { title: '新建采购退货' },
+      },
+      {
+        path: 'purchase-returns/edit/:id',
+        name: 'PurchaseReturnEdit',
+        component: () => import('@/views/purchase-return/PurchaseReturnCreate.vue'),
+        meta: { title: '编辑采购退货' },
+      },
+      {
+        path: 'purchase-returns/:id',
+        name: 'PurchaseReturnDetail',
+        component: () => import('@/views/purchase-return/PurchaseReturnDetail.vue'),
+        meta: { title: '采购退货详情' },
+      },
+      {
         path: 'suppliers',
         name: 'SupplierList',
         component: () => import('@/views/supplier/SupplierList.vue'),
@@ -115,6 +139,30 @@ const routes: RouteRecordRaw[] = [
         name: 'SalesEdit',
         component: () => import('@/views/sales/SalesEdit.vue'),
         meta: { title: '编辑销售' },
+      },
+      {
+        path: 'sales-returns',
+        name: 'SalesReturnList',
+        component: () => import('@/views/sales-return/SalesReturnList.vue'),
+        meta: { title: '销售退货' },
+      },
+      {
+        path: 'sales-returns/create',
+        name: 'SalesReturnCreate',
+        component: () => import('@/views/sales-return/SalesReturnCreate.vue'),
+        meta: { title: '新建销售退货' },
+      },
+      {
+        path: 'sales-returns/edit/:id',
+        name: 'SalesReturnEdit',
+        component: () => import('@/views/sales-return/SalesReturnCreate.vue'),
+        meta: { title: '编辑销售退货' },
+      },
+      {
+        path: 'sales-returns/:id',
+        name: 'SalesReturnDetail',
+        component: () => import('@/views/sales-return/SalesReturnDetail.vue'),
+        meta: { title: '销售退货详情' },
       },
       {
         path: 'customers',
