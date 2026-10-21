@@ -5,7 +5,13 @@
       <el-row :gutter="16">
         <el-col :span="8">
           <el-form-item label="客户" prop="customer_id">
-            <el-select v-model="form.customer_id" placeholder="请选择客户" filterable style="width: 100%">
+            <el-select
+              v-model="form.customer_id"
+              placeholder="请选择客户"
+              filterable
+              style="width: 100%"
+              @change="onCustomerChange"
+            >
               <el-option
                 v-for="c in customers"
                 :key="c.id"
@@ -27,6 +33,29 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="8">
+          <el-form-item label="收货门店">
+            <el-select
+              v-model="form.shop_id"
+              placeholder="可选，不选则不指定门店"
+              clearable
+              style="width: 100%"
+            >
+              <el-option
+                v-for="s in shops"
+                :key="s.id"
+                :label="s.shop_name + (s.is_default === 1 ? '（默认）' : '')"
+                :value="s.id"
+              />
+            </el-select>
+            <div v-if="selectedShop && selectedShop.address" style="font-size: 12px; color: #909399; margin-top: 4px">
+              收货地址：{{ selectedShop.address }}
+            </div>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="16">
         <el-col :span="8">
           <el-form-item label="备注">
             <el-input v-model="form.remark" placeholder="可选" />
@@ -82,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -90,7 +119,8 @@ import { createSalesOrder } from '@/api/sales'
 import { getCustomers } from '@/api/customer'
 import { getWarehouses } from '@/api/warehouse'
 import { getProducts } from '@/api/product'
-import type { SalesOrderCreate, Customer, Warehouse, Product } from '@/types'
+import { getCustomerShops } from '@/api/customerShop'
+import type { SalesOrderCreate, Customer, Warehouse, Product, CustomerShop } from '@/types'
 
 const router = useRouter()
 const formRef = ref<FormInstance>()
@@ -99,17 +129,40 @@ const submitting = ref(false)
 const customers = ref<Customer[]>([])
 const warehouses = ref<Warehouse[]>([])
 const products = ref<Product[]>([])
+const shops = ref<CustomerShop[]>([])
 
 const form = reactive<SalesOrderCreate>({
   customer_id: 0,
   warehouse_id: 0,
+  shop_id: null,
   remark: '',
   items: [{ product_id: 0, quantity: 1, unit_price: 0 }],
 })
 
+const selectedShop = computed(
+  () => shops.value.find((s) => s.id === form.shop_id) || null,
+)
+
 const rules: FormRules = {
   customer_id: [{ required: true, message: '请选择客户', trigger: 'change' }],
   warehouse_id: [{ required: true, message: '请选择仓库', trigger: 'change' }],
+}
+
+async function loadShops(customerId: number) {
+  if (!customerId) {
+    shops.value = []
+    form.shop_id = null
+    return
+  }
+  const res = await getCustomerShops(customerId)
+  shops.value = res.data || []
+  // 默认选中该客户的默认门店
+  const def = shops.value.find((s) => s.is_default === 1)
+  form.shop_id = def ? def.id : null
+}
+
+function onCustomerChange(customerId: number) {
+  loadShops(customerId)
 }
 
 function addItem() {
@@ -144,6 +197,7 @@ async function handleSubmit() {
       await createSalesOrder({
         customer_id: form.customer_id,
         warehouse_id: form.warehouse_id,
+        shop_id: form.shop_id || null,
         remark: form.remark || undefined,
         items: form.items.map((i) => ({
           product_id: i.product_id,

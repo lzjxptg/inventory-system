@@ -173,6 +173,17 @@ admin 角色拥有全部 18 项；operator 角色拥有 14 项（不含 `:delete
 | PUT | `/api/v1/customers/{customer_id}` | 是 | 无 | Body: 同创建（均可选） | 更新客户 |
 | DELETE | `/api/v1/customers/{customer_id}` | 是 | 无 | Path: `customer_id` | 逻辑删除客户 |
 
+### 客户门店（/api/v1/customer-shops）
+
+| 方法 | 路径 | 鉴权 | RBAC | 请求参数 | 响应 |
+|------|------|------|------|----------|------|
+| POST | `/api/v1/customer-shops` | 是 | `customer:create` | Body: `customer_id`, `shop_name`, `contact?`, `phone?`, `address?`, `is_default?` | 新建门店（同客户门店名不重复） |
+| GET | `/api/v1/customer-shops` | 是 | `customer:view` | Query: `customer_id` | 该客户下门店列表（默认门店在前） |
+| GET | `/api/v1/customer-shops/{id}` | 是 | `customer:view` | Path: `id` | 门店详情 |
+| PUT | `/api/v1/customer-shops/{id}` | 是 | `customer:create` | Path: `id`；Body: `shop_name?`, `contact?`, `phone?`, `address?`, `is_default?` | 更新门店 |
+| DELETE | `/api/v1/customer-shops/{id}` | 是 | `customer:create` | Path: `id` | 逻辑删除门店 |
+| POST | `/api/v1/customer-shops/{id}/set-default` | 是 | `customer:create` | Path: `id` | 设为默认门店（同客户其他门店取消默认） |
+
 ---
 
 ## 9. 库存管理（/api/v1/inventory）
@@ -223,11 +234,11 @@ admin 角色拥有全部 18 项；operator 角色拥有 14 项（不含 `:delete
 
 | 方法 | 路径 | 鉴权 | RBAC | 请求参数 | 响应 |
 |------|------|------|------|----------|------|
-| POST | `/api/v1/sales/orders` | 是 | 无 | Body: `customer_id`, `warehouse_id`, `remark?`, `items: [{product_id, quantity, unit_price}]` | 新建销售订单 |
+| POST | `/api/v1/sales/orders` | 是 | 无 | Body: `customer_id`, `warehouse_id`, `shop_id?`, `remark?`, `items: [{product_id, quantity, unit_price}]` | 新建销售订单（`shop_id` 必须属于所选客户，否则 40001） |
 | GET | `/api/v1/sales/orders` | 是 | 无 | Query: `status?`, `customer_id?`, `keyword?`, `skip`, `limit` | 销售订单列表 |
 | GET | `/api/v1/sales/orders/export` | 是 | `sales:view` | Query: `status?`, `customer_id?`, `keyword?`, `format=xlsx` | Excel 文件（销售订单） |
-| GET | `/api/v1/sales/orders/{order_id}` | 是 | 无 | Path: `order_id` | 销售订单详情（含明细） |
-| PUT | `/api/v1/sales/orders/{order_id}` | 是 | 无 | Body: 同创建（均可选，明细全量替换） | 修改销售订单（仅草稿） |
+| GET | `/api/v1/sales/orders/{order_id}` | 是 | 无 | Path: `order_id` | 销售订单详情（含明细、`shop_id`/`shop_name`/`shop_address`） |
+| PUT | `/api/v1/sales/orders/{order_id}` | 是 | 无 | Body: 同创建（含 `shop_id?`，均可选，明细全量替换） | 修改销售订单（仅草稿） |
 | POST | `/api/v1/sales/orders/{order_id}/submit` | 是 | 无 | Path: `order_id` | 提交审核（draft → submitted） |
 | POST | `/api/v1/sales/orders/{order_id}/approve` | 是 | 无 | Path: `order_id` | 审核通过（submitted → approved） |
 | POST | `/api/v1/sales/orders/{order_id}/cancel` | 是 | 无 | Path: `order_id` | 取消订单（已完成不可取消） |

@@ -120,6 +120,7 @@ export interface SalesOrder {
   order_no: string
   customer_id: number
   warehouse_id: number
+  shop_id: number | null
   status: string
   total_quantity: number
   total_amount: number
@@ -130,6 +131,8 @@ export interface SalesOrder {
   updated_at: string
   customer_name: string
   warehouse_name: string
+  shop_name: string
+  shop_address: string
   items: any[]
   [key: string]: any
 }
@@ -144,6 +147,7 @@ export interface SalesOrderItemCreate {
 export interface SalesOrderCreate {
   customer_id: number
   warehouse_id: number
+  shop_id?: number | null
   remark?: string | null
   items: SalesOrderItemCreate[]
 }
@@ -368,6 +372,37 @@ export interface CustomerUpdate {
   contact?: string | null
   phone?: string | null
   address?: string | null
+}
+
+// ---------------- 客户门店 ----------------
+export interface CustomerShop {
+  id: number
+  customer_id: number
+  shop_name: string
+  contact: string | null
+  phone: string | null
+  address: string | null
+  is_default: number
+  is_deleted: number
+  created_at: string
+  [key: string]: any
+}
+
+export interface CustomerShopCreate {
+  customer_id: number
+  shop_name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+  is_default?: number
+}
+
+export interface CustomerShopUpdate {
+  shop_name?: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+  is_default?: number
 }
 
 // ---------------- 采购退货 ----------------

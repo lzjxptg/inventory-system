@@ -25,6 +25,11 @@ from .unit import UnitCreate, UnitResponse, UnitUpdate  # noqa: E402
 from .product import ProductCreate, ProductResponse, ProductUpdate  # noqa: E402
 from .supplier import SupplierCreate, SupplierResponse, SupplierUpdate  # noqa: E402
 from .customer import CustomerCreate, CustomerResponse, CustomerUpdate  # noqa: E402
+from .customer_shop import (  # noqa: E402
+    CustomerShopCreate,
+    CustomerShopOut,
+    CustomerShopUpdate,
+)
 from .warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate  # noqa: E402
 from .user import ResetPassword, Token, UserCreate, UserOut  # noqa: E402
 from .role import (  # noqa: E402
@@ -100,6 +105,10 @@ __all__ = [
     "CustomerCreate",
     "CustomerUpdate",
     "CustomerResponse",
+    # customer shop
+    "CustomerShopCreate",
+    "CustomerShopUpdate",
+    "CustomerShopOut",
     # warehouse
     "WarehouseCreate",
     "WarehouseUpdate",

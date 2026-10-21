@@ -17,6 +17,7 @@ from routers import (
     auth,
     category,
     customer,
+    customer_shops,
     inventory,
     product,
     purchase,
@@ -81,6 +82,7 @@ app.include_router(unit.router, dependencies=PROTECTED)
 app.include_router(product.router, dependencies=PROTECTED)
 app.include_router(supplier.router, dependencies=PROTECTED)
 app.include_router(customer.router, dependencies=PROTECTED)
+app.include_router(customer_shops.router, dependencies=PROTECTED)
 app.include_router(warehouse.router, dependencies=PROTECTED)
 app.include_router(inventory.router, dependencies=PROTECTED)
 app.include_router(purchase.router, prefix="/api/v1/purchases", dependencies=PROTECTED)

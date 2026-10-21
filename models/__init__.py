@@ -6,6 +6,7 @@
 
 from .category import Category
 from .customer import Customer
+from .customer_shop import CustomerShop
 from .inventory import InventoryBalance, StockMovement
 from .product import Product
 from .role import Permission, Role, RolePermission
@@ -21,6 +22,7 @@ from .warehouse import Warehouse
 __all__ = [
     "Category",
     "Customer",
+    "CustomerShop",
     "InventoryBalance",
     "Permission",
     "Product",

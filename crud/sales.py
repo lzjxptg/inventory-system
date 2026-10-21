@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from core.exceptions import ConflictException, NotFoundException, ValidationException
 from crud.inventory import create_stock_movements
 from models.customer import Customer
+from models.customer_shop import CustomerShop
 from models.product import Product
 from models.sales import (
     SalesOrder,
@@ -105,6 +106,23 @@ def _check_product_exists(db: Session, product_id: int) -> None:
         raise ValidationException(f"商品ID={product_id} 不存在或已删除")
 
 
+def _check_shop_belongs_to_customer(
+    db: Session, shop_id: int | None, customer_id: int
+) -> None:
+    """若指定了门店，校验该门店属于所选客户且未删除。"""
+    if shop_id is None:
+        return
+    shop = db.execute(
+        select(CustomerShop).where(
+            CustomerShop.id == shop_id,
+            CustomerShop.customer_id == customer_id,
+            CustomerShop.is_deleted == 0,
+        )
+    ).scalar_one_or_none()
+    if shop is None:
+        raise ValidationException("收货门店不存在或不属于该客户")
+
+
 def _calc_order_totals(items: list) -> tuple[Decimal, Decimal]:
     """根据明细计算总数量与总金额。"""
     total_qty = Decimal("0")
@@ -142,6 +160,7 @@ def get_order(db: Session, order_id: int) -> SalesOrder | None:
             selectinload(SalesOrder.items),
             joinedload(SalesOrder.customer),
             joinedload(SalesOrder.warehouse),
+            joinedload(SalesOrder.shop),
         )
         .where(SalesOrder.id == order_id, SalesOrder.is_deleted == 0)
     )
@@ -163,6 +182,7 @@ def list_orders(
             selectinload(SalesOrder.items),
             joinedload(SalesOrder.customer),
             joinedload(SalesOrder.warehouse),
+            joinedload(SalesOrder.shop),
         )
         .where(SalesOrder.is_deleted == 0)
     )
@@ -188,6 +208,7 @@ def create_order(db: Session, order_in: SalesOrderCreate, created_by: int) -> Sa
     - 状态默认 draft。
     """
     _check_customer_warehouse(db, order_in.customer_id, order_in.warehouse_id)
+    _check_shop_belongs_to_customer(db, order_in.shop_id, order_in.customer_id)
 
     product_ids = [item.product_id for item in order_in.items]
     if len(product_ids) != len(set(product_ids)):
@@ -203,6 +224,7 @@ def create_order(db: Session, order_in: SalesOrderCreate, created_by: int) -> Sa
         order_no=order_no,
         customer_id=order_in.customer_id,
         warehouse_id=order_in.warehouse_id,
+        shop_id=order_in.shop_id,
         status=ORDER_STATUS_DRAFT,
         total_quantity=total_qty,
         total_amount=total_amt,
@@ -262,6 +284,7 @@ def update_order(db: Session, order_id: int, order_in: SalesOrderUpdate) -> Sale
         raise ConflictException(f"订单状态为 {order.status}，仅草稿可修改")
 
     _check_customer_warehouse(db, order_in.customer_id, order_in.warehouse_id)
+    _check_shop_belongs_to_customer(db, order_in.shop_id, order_in.customer_id)
 
     product_ids = [item.product_id for item in order_in.items]
     if len(product_ids) != len(set(product_ids)):
@@ -273,6 +296,7 @@ def update_order(db: Session, order_id: int, order_in: SalesOrderUpdate) -> Sale
 
     order.customer_id = order_in.customer_id
     order.warehouse_id = order_in.warehouse_id
+    order.shop_id = order_in.shop_id
     order.remark = order_in.remark
     order.total_quantity = total_qty
     order.total_amount = total_amt

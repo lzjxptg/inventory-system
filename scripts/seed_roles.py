@@ -24,6 +24,9 @@ PERMISSIONS = [
     # settings 模块
     ("role:manage", "角色管理", "settings"),
     ("user:role", "分配用户角色", "settings"),
+    # customer 模块
+    ("customer:view", "查看客户/门店", "customer"),
+    ("customer:create", "创建/编辑/删除客户及门店", "customer"),
     # purchase 模块
     ("purchase:view", "查看采购", "purchase"),
     ("purchase:create", "创建采购", "purchase"),
@@ -56,6 +59,8 @@ ROLES = {
 
 # operator 角色拥有的权限 code 列表（不含 :delete、role:manage、user:role）
 OPERATOR_PERMISSIONS = [
+    "customer:view",
+    "customer:create",
     "purchase:view",
     "purchase:create",
     "sales:view",

@@ -37,6 +37,9 @@ class SalesOrderCreate(_BaseSchema):
 
     customer_id: int = Field(..., description="客户ID")
     warehouse_id: int = Field(..., description="出库仓库ID")
+    shop_id: int | None = Field(
+        default=None, description="收货门店ID，可选，不指定则为 NULL"
+    )
     remark: str | None = Field(default=None, max_length=255, description="备注")
     items: list[SalesOrderItemCreate] = Field(
         ..., min_length=1, description="订单明细列表（至少一条）"
@@ -48,6 +51,9 @@ class SalesOrderUpdate(_BaseSchema):
 
     customer_id: int = Field(..., description="客户ID")
     warehouse_id: int = Field(..., description="出库仓库ID")
+    shop_id: int | None = Field(
+        default=None, description="收货门店ID，可选，不指定则为 NULL"
+    )
     remark: str | None = Field(default=None, max_length=255, description="备注")
     items: list[SalesOrderItemCreate] = Field(
         ..., min_length=1, description="订单明细列表（全量替换，至少一条）"
@@ -77,6 +83,7 @@ class SalesOrderResponse(_BaseSchema):
     order_no: str
     customer_id: int
     warehouse_id: int
+    shop_id: int | None = Field(default=None, description="收货门店ID")
     status: str
     total_quantity: Decimal = Field(max_digits=12, decimal_places=2)
     total_amount: Decimal = Field(max_digits=12, decimal_places=2)
@@ -88,6 +95,8 @@ class SalesOrderResponse(_BaseSchema):
     is_deleted: int = Field(ge=0, le=1, description="逻辑删除：0正常 1已删除")
     customer_name: str = Field(default="", description="客户名称")
     warehouse_name: str = Field(default="", description="仓库名称")
+    shop_name: str = Field(default="", description="收货门店名称")
+    shop_address: str = Field(default="", description="收货门店地址")
     items: list[SalesOrderItemOut] = Field(default_factory=list, description="订单明细")
 
 

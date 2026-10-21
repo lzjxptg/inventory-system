@@ -57,6 +57,12 @@ class SalesOrder(Base, CommonMixin):
         nullable=False,
         comment="出库仓库ID",
     )
+    shop_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("customer_shops.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="收货门店ID，NULL 表示不指定具体门店",
+    )
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -101,6 +107,7 @@ class SalesOrder(Base, CommonMixin):
 
     customer = relationship("Customer", lazy="select")
     warehouse = relationship("Warehouse", lazy="select")
+    shop = relationship("CustomerShop", lazy="select")
     creator = relationship("User", foreign_keys=[created_by], lazy="select")
     approver = relationship("User", foreign_keys=[approved_by], lazy="select")
     items: Mapped[list["SalesOrderItem"]] = relationship(
@@ -115,6 +122,7 @@ class SalesOrder(Base, CommonMixin):
         Index("ix_sales_orders_customer_id", "customer_id"),
         Index("ix_sales_orders_status", "status"),
         Index("ix_sales_orders_warehouse_id", "warehouse_id"),
+        Index("ix_sales_orders_shop_id", "shop_id"),
         {"comment": "销售订单头表"},
     )
 
@@ -125,6 +133,16 @@ class SalesOrder(Base, CommonMixin):
     @property
     def warehouse_name(self) -> str:
         return self.warehouse.name if self.warehouse is not None else ""
+
+    @property
+    def shop_name(self) -> str:
+        return self.shop.shop_name if self.shop is not None else ""
+
+    @property
+    def shop_address(self) -> str:
+        if self.shop is None or self.shop.address is None:
+            return ""
+        return self.shop.address
 
 
 class SalesOrderItem(Base, CommonMixin):

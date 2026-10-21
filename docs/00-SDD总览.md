@@ -89,5 +89,6 @@
 | [11-Excel导出设计(SDD).md](./11-Excel导出设计(SDD).md) | 6 个模块 Excel 导出：后端 openpyxl + StreamingResponse、前端 blob 下载、权限与列定义 |
 | [12-Docker部署设计(SDD).md](./12-Docker部署设计(SDD).md) | Docker 容器化部署：mysql/backend/frontend/redis 四服务编排、镜像构建、初始化与持久化 |
 | [13-采购退货&销售退货模块设计(SDD).md](./13-采购退货&销售退货模块设计(SDD).md) | 采购退货 / 销售退货：数据模型、状态流转、库存联动（IN/OUT）、18 接口、权限矩阵、前端页面 |
+| [14-客户门店子表设计(SDD).md](./14-客户门店子表设计(SDD).md) | 客户多门店管理：customer_shops 子表、sales_orders.shop_id 关联、门店 CRUD、默认门店、销售订单收货门店联动 |
 | [API接口清单.md](./API接口清单.md) | 全量接口清单：按模块列出方法、路径、鉴权、RBAC 权限、请求参数与响应格式 |
 | [changelog.md](./changelog.md) | 文档变更记录 |

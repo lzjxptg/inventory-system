@@ -83,6 +83,8 @@
         </el-descriptions-item>
         <el-descriptions-item label="客户">{{ detail.customer_name }}</el-descriptions-item>
         <el-descriptions-item label="仓库">{{ detail.warehouse_name }}</el-descriptions-item>
+        <el-descriptions-item label="送货门店">{{ detail.shop_name || '未指定' }}</el-descriptions-item>
+        <el-descriptions-item label="门店地址">{{ detail.shop_address || '-' }}</el-descriptions-item>
         <el-descriptions-item label="总数量">{{ detail.total_quantity }}</el-descriptions-item>
         <el-descriptions-item label="总金额">{{ detail.total_amount }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
