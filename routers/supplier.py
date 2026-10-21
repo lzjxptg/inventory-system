@@ -4,10 +4,14 @@
 code 唯一性校验由 crud 层负责。
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.dependencies import get_current_user
+from core.excel_export import build_excel_bytes, dated_filename, excel_response
+from core.permissions import require_permission
 from core.response import error, success
 from crud.supplier import (
     create_supplier,
@@ -16,6 +20,8 @@ from crud.supplier import (
     get_suppliers,
     update_supplier,
 )
+from models.supplier import Supplier
+from models.user import User
 from schemas.supplier import SupplierCreate, SupplierResponse, SupplierUpdate
 
 router = APIRouter(prefix="/api/v1/suppliers", tags=["供应商管理"])
@@ -30,6 +36,39 @@ def list_suppliers(
     return success(
         data=[SupplierResponse.model_validate(item).model_dump() for item in items]
     )
+
+
+@router.get(
+    "/export",
+    dependencies=[Depends(require_permission("purchase:view"))],
+)
+def export_suppliers(
+    keyword: str | None = Query(default=None, description="按供应商名称模糊筛选"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """导出供应商列表为 Excel（受相同筛选条件约束，不分页）。"""
+    stmt = select(Supplier).where(Supplier.is_deleted == 0)
+    if keyword:
+        stmt = stmt.where(Supplier.name.like(f"%{keyword}%"))
+    stmt = stmt.order_by(Supplier.id.asc())
+    items = db.execute(stmt).scalars().all()
+
+    headers = ["ID", "编码", "名称", "联系人", "电话", "地址", "创建时间"]
+    rows = [
+        [
+            item.id,
+            item.code,
+            item.name,
+            item.contact or "",
+            item.phone or "",
+            item.address or "",
+            item.created_at.strftime("%Y-%m-%d %H:%M:%S") if item.created_at else "",
+        ]
+        for item in items
+    ]
+    data = build_excel_bytes(headers, rows)
+    return excel_response(data, dated_filename("供应商列表"))
 
 
 @router.get("/{supplier_id}")

@@ -4,10 +4,14 @@
 code 唯一性校验由 crud 层负责。
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.dependencies import get_current_user
+from core.excel_export import build_excel_bytes, dated_filename, excel_response
+from core.permissions import require_permission
 from core.response import error, success
 from crud.customer import (
     create_customer,
@@ -16,6 +20,8 @@ from crud.customer import (
     get_customers,
     update_customer,
 )
+from models.customer import Customer
+from models.user import User
 from schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 
 router = APIRouter(prefix="/api/v1/customers", tags=["客户管理"])
@@ -30,6 +36,39 @@ def list_customers(
     return success(
         data=[CustomerResponse.model_validate(item).model_dump() for item in items]
     )
+
+
+@router.get(
+    "/export",
+    dependencies=[Depends(require_permission("sales:view"))],
+)
+def export_customers(
+    keyword: str | None = Query(default=None, description="按客户名称模糊筛选"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """导出客户列表为 Excel（受相同筛选条件约束，不分页）。"""
+    stmt = select(Customer).where(Customer.is_deleted == 0)
+    if keyword:
+        stmt = stmt.where(Customer.name.like(f"%{keyword}%"))
+    stmt = stmt.order_by(Customer.id.asc())
+    items = db.execute(stmt).scalars().all()
+
+    headers = ["ID", "编码", "名称", "联系人", "电话", "地址", "创建时间"]
+    rows = [
+        [
+            item.id,
+            item.code,
+            item.name,
+            item.contact or "",
+            item.phone or "",
+            item.address or "",
+            item.created_at.strftime("%Y-%m-%d %H:%M:%S") if item.created_at else "",
+        ]
+        for item in items
+    ]
+    data = build_excel_bytes(headers, rows)
+    return excel_response(data, dated_filename("客户列表"))
 
 
 @router.get("/{customer_id}")

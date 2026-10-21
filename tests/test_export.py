@@ -111,3 +111,15 @@ async def test_export_sales_summary(auth_client: AsyncClient, setup_operator_per
         params={"start_date": "2025-01-01", "end_date": "2025-12-31"},
     )
     _assert_xlsx(resp)
+
+
+@pytest.mark.asyncio
+async def test_export_suppliers(auth_client: AsyncClient, setup_operator_perms):
+    resp = await auth_client.get("/api/v1/suppliers/export")
+    _assert_xlsx(resp)
+
+
+@pytest.mark.asyncio
+async def test_export_customers(auth_client: AsyncClient, setup_operator_perms):
+    resp = await auth_client.get("/api/v1/customers/export")
+    _assert_xlsx(resp)
