@@ -183,3 +183,88 @@ export interface SalesSummaryData {
     total_amount: number
   }>
 }
+
+// ---------------- 商品 ----------------
+export interface Product {
+  id: number
+  sku: string
+  name: string
+  category_id: number | null
+  unit_id: number
+  spec: string | null
+  purchase_price: number
+  sale_price: number
+  min_stock: number
+  status: number
+  is_deleted: number
+  created_at: string
+  updated_at: string
+  [key: string]: any
+}
+
+export interface ProductCreate {
+  sku: string
+  name: string
+  category_id?: number | null
+  unit_id: number
+  spec?: string | null
+  purchase_price?: number
+  sale_price?: number
+  min_stock?: number
+  status?: number
+}
+
+export interface ProductUpdate {
+  sku?: string
+  name?: string
+  category_id?: number | null
+  unit_id?: number
+  spec?: string | null
+  purchase_price?: number
+  sale_price?: number
+  min_stock?: number
+  status?: number
+}
+
+// ---------------- 仓库 ----------------
+export interface Warehouse {
+  id: number
+  code: string
+  name: string
+  manager: string | null
+  is_deleted: number
+  created_at: string
+  [key: string]: any
+}
+
+export interface WarehouseCreate {
+  code: string
+  name: string
+  manager?: string | null
+}
+
+export interface WarehouseUpdate {
+  code?: string
+  name?: string
+  manager?: string | null
+}
+
+// ---------------- 分类 ----------------
+export interface Category {
+  id: number
+  name: string
+  parent_id: number | null
+  sort: number
+  is_deleted: number
+  created_at: string
+}
+
+// ---------------- 单位 ----------------
+export interface Unit {
+  id: number
+  name: string
+  code: string | null
+  sort: number
+  is_deleted: number
+  created_at: string
+}
