@@ -293,3 +293,189 @@ async def test_reset_password_operator_forbidden(auth_client: AsyncClient, db_se
     )
     assert resp.status_code == 200
     assert resp.json()["code"] == 40301
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/users — 用户列表
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_users_list(admin_client: AsyncClient):
+    """获取用户列表，返回数组且包含 admin 用户。"""
+    resp = await admin_client.get("/api/v1/users")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["code"] == 0
+    assert isinstance(body["data"], list)
+    usernames = [u["username"] for u in body["data"]]
+    assert "admintest" in usernames
+
+
+@pytest.mark.asyncio
+async def test_get_users_pagination(admin_client: AsyncClient, db_session: Session):
+    """列表分页参数 skip/limit 生效。"""
+    # 准备 3 个额外用户
+    for i in range(3):
+        db_session.add(User(
+            username=f"pageuser{i}",
+            hashed_password=get_password_hash("pass12345"),
+            is_active=True,
+        ))
+    db_session.commit()
+
+    # limit=1 只返回 1 条
+    resp = await admin_client.get("/api/v1/users", params={"skip": 0, "limit": 1})
+    assert resp.status_code == 200
+    assert len(resp.json()["data"]) == 1
+
+    # skip=1 跳过第一条
+    resp0 = await admin_client.get("/api/v1/users", params={"skip": 0, "limit": 1})
+    resp1 = await admin_client.get("/api/v1/users", params={"skip": 1, "limit": 1})
+    assert resp0.json()["data"][0]["id"] != resp1.json()["data"][0]["id"]
+
+
+# ---------------------------------------------------------------------------
+# PUT /api/v1/users/{id}/role — 角色分配
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_user_role(admin_client: AsyncClient, db_session: Session):
+    """admin 可修改用户角色。"""
+    role_a = Role(name="role_a", description="A")
+    role_b = Role(name="role_b", description="B")
+    db_session.add_all([role_a, role_b])
+    db_session.commit()
+    db_session.refresh(role_a)
+    db_session.refresh(role_b)
+
+    user = User(
+        username="rolechg",
+        hashed_password=get_password_hash("pass12345"),
+        is_active=True,
+        role_id=role_a.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    resp = await admin_client.put(
+        f"/api/v1/users/{user.id}/role",
+        json={"role_id": role_b.id},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+    assert resp.json()["data"]["role_id"] == role_b.id
+
+    u = db_session.execute(
+        select(User).where(User.id == user.id)
+    ).scalar_one()
+    assert u.role_id == role_b.id
+
+
+@pytest.mark.asyncio
+async def test_update_user_role_nonexistent(admin_client: AsyncClient, db_session: Session):
+    """修改不存在用户的角色返回 code 404。"""
+    role = Role(name="r_nonexist", description="x")
+    db_session.add(role)
+    db_session.commit()
+    db_session.refresh(role)
+
+    resp = await admin_client.put(
+        "/api/v1/users/999999/role",
+        json={"role_id": role.id},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 404
+
+
+@pytest.mark.asyncio
+async def test_update_user_role_unauthorized(
+    auth_client: AsyncClient, db_session: Session
+):
+    """operator 尝试修改他人角色返回 40301。"""
+    role = Role(name="r_unauth", description="x")
+    db_session.add(role)
+    db_session.commit()
+    db_session.refresh(role)
+
+    user = User(
+        username="role_target_op",
+        hashed_password=get_password_hash("pass12345"),
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    resp = await auth_client.put(
+        f"/api/v1/users/{user.id}/role",
+        json={"role_id": role.id},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 40301
+
+
+# ---------------------------------------------------------------------------
+# 重复用户名 / 登录 / 密码哈希
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_user_with_existing_username(admin_client: AsyncClient):
+    """重复用户名返回冲突 code 40901。"""
+    await admin_client.post(
+        "/api/v1/users",
+        json={"username": "existuser", "password": "pass12345"},
+    )
+    resp = await admin_client.post(
+        "/api/v1/users",
+        json={"username": "existuser", "password": "pass12345"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 40901
+
+
+@pytest.mark.asyncio
+async def test_login_with_wrong_password(client: AsyncClient, db_session: Session):
+    """密码错误登录返回 code 40101。"""
+    user = User(
+        username="loginuser",
+        hashed_password=get_password_hash("correctpass"),
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    resp = await client.post(
+        "/api/v1/auth/login",
+        data={"username": "loginuser", "password": "wrongpass"},
+    )
+    # 业务异常经全局处理后 HTTP 仍为 200，body code 为 40101
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 40101
+
+
+@pytest.mark.asyncio
+async def test_create_user_password_hashed(
+    admin_client: AsyncClient, db_session: Session
+):
+    """创建用户后数据库中存储的是哈希值，非明文。"""
+    plain = "mysecret123"
+    resp = await admin_client.post(
+        "/api/v1/users",
+        json={"username": "hashuser", "password": plain},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+
+    u = db_session.execute(
+        select(User).where(User.username == "hashuser")
+    ).scalar_one()
+    # 响应与库中均不含明文密码
+    assert "password" not in resp.json()["data"]
+    assert u.hashed_password != plain
+    # 哈希值可通过 verify_password 校验
+    assert verify_password(plain, u.hashed_password)
+    assert not verify_password("notthepassword", u.hashed_password)
