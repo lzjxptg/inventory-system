@@ -30,6 +30,12 @@ class UserOut(_BaseSchema):
     created_at: datetime
 
 
+class ResetPassword(_BaseSchema):
+    """重置密码请求体（admin 重置任意用户密码）。"""
+
+    new_password: str = Field(..., min_length=6, max_length=128, description="新明文密码")
+
+
 class Token(_BaseSchema):
     """登录返回的访问令牌。"""
 

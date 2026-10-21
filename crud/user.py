@@ -4,7 +4,7 @@
 创建用户时对密码进行 bcrypt 哈希，查询时默认过滤 is_deleted=0。
 """
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from core.security import get_password_hash
@@ -63,4 +63,35 @@ def assign_user_role(db: Session, user_id: int, role_id: int) -> User | None:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def soft_delete_user(db: Session, user_id: int) -> bool:
+    """逻辑删除用户（is_deleted=1）。用户不存在返回 False。"""
+    db_user = get_user_by_id(db, user_id)
+    if db_user is None:
+        return False
+    db_user.is_deleted = 1
+    db.commit()
+    return True
+
+
+def update_user_password(db: Session, user_id: int, new_password: str) -> User | None:
+    """更新用户密码（明文转 bcrypt 哈希）。用户不存在返回 None。"""
+    db_user = get_user_by_id(db, user_id)
+    if db_user is None:
+        return None
+    db_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def count_active_admins(db: Session, admin_role_id: int) -> int:
+    """统计拥有指定 admin 角色的启用且未删除用户数量。"""
+    stmt = select(func.count(User.id)).where(
+        User.role_id == admin_role_id,
+        User.is_deleted == 0,
+        User.is_active.is_(True),
+    )
+    return int(db.execute(stmt).scalar_one() or 0)
 

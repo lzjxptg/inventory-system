@@ -26,7 +26,7 @@ from .product import ProductCreate, ProductResponse, ProductUpdate  # noqa: E402
 from .supplier import SupplierCreate, SupplierResponse, SupplierUpdate  # noqa: E402
 from .customer import CustomerCreate, CustomerResponse, CustomerUpdate  # noqa: E402
 from .warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate  # noqa: E402
-from .user import Token, UserCreate, UserOut  # noqa: E402
+from .user import ResetPassword, Token, UserCreate, UserOut  # noqa: E402
 from .role import (  # noqa: E402
     PermissionOut,
     RoleCreate,
@@ -94,6 +94,7 @@ __all__ = [
     "UserCreate",
     "UserOut",
     "Token",
+    "ResetPassword",
     # role / permission
     "RoleCreate",
     "RoleUpdate",
