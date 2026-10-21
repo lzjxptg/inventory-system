@@ -48,7 +48,7 @@ Excel 导出接口返回 `StreamingResponse`，`Content-Type: application/vnd.op
 - **权限码校验**：部分导出接口要求特定权限码（`require_permission("xxx:view")`）。
 - 基础档案 CRUD（商品/仓库/分类/单位/供应商/客户）及采购/销售/库存的大部分操作接口仅要求登录，不做细粒度权限码校验。
 
-预置权限码（共 12 项）：
+预置权限码（共 18 项）：
 
 | 权限码 | 名称 | 模块 |
 |--------|------|------|
@@ -64,8 +64,14 @@ Excel 导出接口返回 `StreamingResponse`，`Content-Type: application/vnd.op
 | `inventory:in` | 入库操作 | inventory |
 | `inventory:out` | 出库操作 | inventory |
 | `reports:view` | 查看报表 | reports |
+| `purchase_return:view` | 查看采购退货 | purchase_return |
+| `purchase_return:create` | 创建采购退货 | purchase_return |
+| `purchase_return:approve` | 审核采购退货 | purchase_return |
+| `sales_return:view` | 查看销售退货 | sales_return |
+| `sales_return:create` | 创建销售退货 | sales_return |
+| `sales_return:approve` | 审核销售退货 | sales_return |
 
-admin 角色拥有全部 12 项；operator 角色拥有 8 项（不含 `:delete`、`role:manage`、`user:role`）。
+admin 角色拥有全部 18 项；operator 角色拥有 14 项（不含 `:delete`、`role:manage`、`user:role` 及各类 `:approve`）。
 
 ---
 
@@ -239,7 +245,62 @@ admin 角色拥有全部 12 项；operator 角色拥有 8 项（不含 `:delete`
 
 ---
 
-## 12. 报表统计（/api/v1/reports）
+## 12. 采购退货（/api/v1/purchase-returns）
+
+| 方法 | 路径 | 鉴权 | RBAC | 请求参数 | 响应 |
+|------|------|------|------|----------|------|
+| POST | `/api/v1/purchase-returns` | 是 | `purchase_return:create` | Body: `purchase_order_id`, `reason?`, `items: [{product_id, quantity, unit_price?, batch_no?}]` | 新建采购退货单（草稿），校验退货数量 ≤ 已入库数量 |
+| GET | `/api/v1/purchase-returns` | 是 | 无 | Query: `status?`, `supplier_id?`, `keyword?`, `skip`, `limit` | 采购退货单列表（含明细） |
+| GET | `/api/v1/purchase-returns/export` | 是 | `purchase_return:view` | Query: `status?`, `supplier_id?`, `keyword?`, `format=xlsx` | Excel 文件（采购退货单） |
+| GET | `/api/v1/purchase-returns/{return_id}` | 是 | 无 | Path: `return_id` | 采购退货单详情（含明细） |
+| PUT | `/api/v1/purchase-returns/{return_id}` | 是 | 无 | Path: `return_id`; Body: `reason?`, `items: [...]`（明细全量替换） | 修改退货单（仅 draft） |
+| DELETE | `/api/v1/purchase-returns/{return_id}` | 是 | 无 | Path: `return_id` | 逻辑删除退货单（仅 draft） |
+| POST | `/api/v1/purchase-returns/{return_id}/submit` | 是 | 无 | Path: `return_id` | 提交审核（draft → submitted） |
+| POST | `/api/v1/purchase-returns/{return_id}/approve` | 是 | `purchase_return:approve` | Path: `return_id` | 审核通过（submitted → approved），联动库存 IN 入库 |
+| POST | `/api/v1/purchase-returns/{return_id}/reject` | 是 | 无 | Path: `return_id` | 驳回（submitted → rejected） |
+
+创建响应示例：
+
+```json
+{
+  "code": 0,
+  "msg": "创建采购退货单成功",
+  "data": {
+    "id": 1,
+    "return_no": "PR-20261021-0001",
+    "purchase_order_id": 10,
+    "supplier_id": 1,
+    "warehouse_id": 1,
+    "status": "draft",
+    "total_quantity": 30.0,
+    "total_amount": 300.0,
+    "reason": "质量问题",
+    "items": [
+      {"product_id": 5, "quantity": 30.0, "unit_price": 10.0, "amount": 300.0, "batch_no": null}
+    ]
+  }
+}
+```
+
+---
+
+## 13. 销售退货（/api/v1/sales-returns）
+
+| 方法 | 路径 | 鉴权 | RBAC | 请求参数 | 响应 |
+|------|------|------|------|----------|------|
+| POST | `/api/v1/sales-returns` | 是 | `sales_return:create` | Body: `sales_order_id`, `reason?`, `items: [{product_id, quantity, unit_price?, batch_no?}]` | 新建销售退货单（草稿），校验退货数量 ≤ 已出库数量 |
+| GET | `/api/v1/sales-returns` | 是 | 无 | Query: `status?`, `customer_id?`, `keyword?`, `skip`, `limit` | 销售退货单列表（含明细） |
+| GET | `/api/v1/sales-returns/export` | 是 | `sales_return:view` | Query: `status?`, `customer_id?`, `keyword?`, `format=xlsx` | Excel 文件（销售退货单） |
+| GET | `/api/v1/sales-returns/{return_id}` | 是 | 无 | Path: `return_id` | 销售退货单详情（含明细） |
+| PUT | `/api/v1/sales-returns/{return_id}` | 是 | 无 | Path: `return_id`; Body: `reason?`, `items: [...]`（明细全量替换） | 修改退货单（仅 draft） |
+| DELETE | `/api/v1/sales-returns/{return_id}` | 是 | 无 | Path: `return_id` | 逻辑删除退货单（仅 draft） |
+| POST | `/api/v1/sales-returns/{return_id}/submit` | 是 | 无 | Path: `return_id` | 提交审核（draft → submitted） |
+| POST | `/api/v1/sales-returns/{return_id}/approve` | 是 | `sales_return:approve` | Path: `return_id` | 审核通过（submitted → approved），联动库存 OUT 出库 |
+| POST | `/api/v1/sales-returns/{return_id}/reject` | 是 | 无 | Path: `return_id` | 驳回（submitted → rejected） |
+
+---
+
+## 14. 报表统计（/api/v1/reports）
 
 | 方法 | 路径 | 鉴权 | RBAC | 请求参数 | 响应 |
 |------|------|------|------|----------|------|
@@ -253,7 +314,7 @@ admin 角色拥有全部 12 项；operator 角色拥有 8 项（不含 `:delete`
 
 ---
 
-## 13. 系统
+## 15. 系统
 
 | 方法 | 路径 | 鉴权 | RBAC | 响应 |
 |------|------|------|------|------|

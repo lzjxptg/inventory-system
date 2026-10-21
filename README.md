@@ -14,13 +14,15 @@
 
 ## 功能清单
 
-- **RBAC 权限管理**：admin / operator 双角色，12 项权限码（角色管理、用户分配角色、采购/销售/库存/报表的查看与增删），接口级权限校验，前端路由守卫 + 按钮级 `v-permission`。
+- **RBAC 权限管理**：admin / operator 双角色，18 项权限码（角色管理、用户分配角色、采购/销售/库存/报表/退货的查看与增删、退货审核），接口级权限校验，前端路由守卫 + 按钮级 `v-permission`。
 - **基础档案**：商品、分类、单位、仓库、供应商、客户的增删改查（逻辑删除）。
 - **库存管理**：入库、出库、盘点调整、库存余额查询、库存流水查询；出库自动校验库存充足。
 - **采购管理**：采购订单（创建/提交/审核/取消/删除）+ 采购入库单（创建/确认/取消），确认入库联动库存。
 - **销售管理**：销售订单（创建/提交/审核/取消/删除）+ 销售出库单（创建/确认/取消），确认出库联动库存。
+- **采购退货管理**：基于原采购订单创建退货单，退货数量不超过已入库数量；审核通过后商品退回仓库，库存余额增加（IN 流水）；支持草稿编辑/删除、提交审核、Excel 导出。
+- **销售退货管理**：基于原销售订单创建退货单，退货数量不超过已出库数量；审核通过后商品出库退回客户，库存余额扣减（OUT 流水）；支持草稿编辑/删除、提交审核、Excel 导出。
 - **报表统计**：库存流水汇总、低库存预警、采购金额统计、销售金额统计。
-- **Excel 导出**：6 个模块一键导出 `.xlsx`（库存流水、采购订单、销售订单、低库存预警、采购统计、销售统计），统计类导出为双 Sheet。
+- **Excel 导出**：8 个模块一键导出 `.xlsx`（库存流水、采购订单、销售订单、采购退货、销售退货、低库存预警、采购统计、销售统计），统计类导出为双 Sheet。
 - **仪表盘**：数据可视化看板。
 
 ## 快速启动（Docker 一键部署）
@@ -103,15 +105,26 @@ docker compose -p inventory down -v
 ```
 进销存练习/
 ├── alembic/              # 数据库迁移
+│   └── versions/
+│       └── a1b2c3d4e5f6_add_purchase_and_sales_return_tables.py  # 退货模块建表迁移
 ├── core/                 # 基础设施（配置、数据库、鉴权、响应、权限、Excel 导出）
 ├── crud/                 # 数据访问层（SQLAlchemy 2.x select 风格）
+│   ├── purchase_return.py        # 采购退货 CRUD + 库存联动（IN 入库）
+│   └── sale_return.py            # 销售退货 CRUD + 库存联动（OUT 出库）
 ├── docs/                 # 设计文档（SDD）
 ├── frontend/             # Vue3 + TS 前端
 ├── models/               # SQLAlchemy ORM 模型
+│   ├── purchase_return.py        # PurchaseReturn / PurchaseReturnItem
+│   └── sale_return.py            # SalesReturn / SalesReturnItem
 ├── routers/              # FastAPI 路由
+│   ├── purchase_return.py        # /api/v1/purchase-returns
+│   └── sale_return.py            # /api/v1/sales-returns
 ├── schemas/              # Pydantic 请求/响应模型
+│   ├── purchase_return.py        # 采购退货 Create/Update/Response
+│   └── sale_return.py            # 销售退货 Create/Update/Response
 ├── scripts/              # 启动入口与 seed 脚本
 ├── tests/                # pytest 测试
+│   └── test_returns.py           # 退货模块测试（库存回滚/扣减、数量校验、草稿删除限制）
 ├── docker-compose.yml    # 四服务编排
 ├── Dockerfile.backend    # 后端镜像
 ├── Dockerfile.frontend   # 前端镜像（多阶段构建）
@@ -120,10 +133,21 @@ docker compose -p inventory down -v
 └── requirements.txt      # Python 依赖
 ```
 
+## 数据库表（退货模块）
+
+退货模块新增 4 张表（由 Alembic migration `a1b2c3d4e5f6` 创建）：
+
+| 表名 | 说明 |
+|------|------|
+| `purchase_returns` | 采购退货单头（return_no 前缀 `PR-YYYYMMDD-`，关联采购订单） |
+| `purchase_return_items` | 采购退货明细（关联商品，唯一约束 `(return_id, product_id)`） |
+| `sales_returns` | 销售退货单头（return_no 前缀 `SR-YYYYMMDD-`，关联销售订单） |
+| `sales_return_items` | 销售退货明细（关联商品，唯一约束 `(return_id, product_id)`） |
+
 ## 默认账号
 
 | 用户名 | 密码 | 角色 | 说明 |
 |--------|------|------|------|
-| admin | admin123456 | admin | 超级管理员，拥有全部 12 项权限 |
+| admin | admin123456 | admin | 超级管理员，拥有全部 18 项权限 |
 
 > admin 账号需按上方「初始化 admin 账号」步骤手动创建并绑定角色。
