@@ -53,7 +53,8 @@ class Product(Base, CommonMixin):
     )
 
     __table_args__ = (
-        Index("uq_products_sku", "sku", unique=True),
+        # 逻辑删除后旧记录仍占 sku，故唯一索引包含 is_deleted，使已删除记录不占用 sku
+        Index("uq_products_sku", "sku", "is_deleted", unique=True),
         Index("ix_products_name_category", "name", "category_id"),
         Index("ix_products_category_id", "category_id"),
         {"comment": "商品表"},
