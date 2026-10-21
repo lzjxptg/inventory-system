@@ -268,3 +268,61 @@ export interface Unit {
   is_deleted: number
   created_at: string
 }
+
+// ---------------- 供应商 ----------------
+export interface Supplier {
+  id: number
+  code: string
+  name: string
+  contact: string | null
+  phone: string | null
+  address: string | null
+  is_deleted: number
+  created_at: string
+  [key: string]: any
+}
+
+export interface SupplierCreate {
+  code: string
+  name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+}
+
+export interface SupplierUpdate {
+  code?: string
+  name?: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+}
+
+// ---------------- 客户 ----------------
+export interface Customer {
+  id: number
+  code: string
+  name: string
+  contact: string | null
+  phone: string | null
+  address: string | null
+  is_deleted: number
+  created_at: string
+  [key: string]: any
+}
+
+export interface CustomerCreate {
+  code: string
+  name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+}
+
+export interface CustomerUpdate {
+  code?: string
+  name?: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+}

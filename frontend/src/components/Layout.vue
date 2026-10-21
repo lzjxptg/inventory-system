@@ -32,6 +32,7 @@
           </template>
           <el-menu-item index="/purchase">采购订单</el-menu-item>
           <el-menu-item index="/purchase/create">新建采购</el-menu-item>
+          <el-menu-item index="/suppliers">供应商管理</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="sales">
@@ -41,6 +42,7 @@
           </template>
           <el-menu-item index="/sales">销售订单</el-menu-item>
           <el-menu-item index="/sales/create">新建销售</el-menu-item>
+          <el-menu-item index="/customers">客户管理</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="reports">

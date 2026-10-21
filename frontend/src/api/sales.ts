@@ -32,7 +32,32 @@ export function createSalesOrder(data: SalesOrderCreate): Promise<ApiResponse<Sa
   return request.post('/sales/orders', data)
 }
 
-// 销售订单详情
+// 销售订单详情（含明细）
 export function getSalesOrder(id: number): Promise<ApiResponse<SalesOrder>> {
   return request.get(`/sales/orders/${id}`)
+}
+
+// 更新销售订单（全量替换明细，仅草稿可改）
+export function updateSalesOrder(id: number, data: SalesOrderCreate): Promise<ApiResponse<SalesOrder>> {
+  return request.put(`/sales/orders/${id}`, data)
+}
+
+// 删除销售订单（仅草稿可删，逻辑删除）
+export function deleteSalesOrder(id: number): Promise<ApiResponse<null>> {
+  return request.delete(`/sales/orders/${id}`)
+}
+
+// 提交审核：draft -> submitted
+export function submitSalesOrder(id: number): Promise<ApiResponse<SalesOrder>> {
+  return request.post(`/sales/orders/${id}/submit`)
+}
+
+// 审核通过：submitted -> approved
+export function approveSalesOrder(id: number): Promise<ApiResponse<SalesOrder>> {
+  return request.post(`/sales/orders/${id}/approve`)
+}
+
+// 取消订单
+export function cancelSalesOrder(id: number): Promise<ApiResponse<SalesOrder>> {
+  return request.post(`/sales/orders/${id}/cancel`)
 }

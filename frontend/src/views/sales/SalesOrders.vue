@@ -38,6 +38,29 @@
       <el-table-column prop="total_amount" label="总金额" width="120" />
       <el-table-column prop="remark" label="备注" show-overflow-tooltip />
       <el-table-column prop="created_at" label="创建时间" width="180" />
+      <el-table-column label="操作" width="280" fixed="right">
+        <template #default="{ row }">
+          <el-button size="small" @click="openDetail(row)">详情</el-button>
+          <el-button
+            v-if="row.status === 'draft'"
+            size="small"
+            type="primary"
+            @click="$router.push(`/sales/edit/${row.id}`)"
+          >编辑</el-button>
+          <el-button
+            v-if="row.status === 'draft'"
+            size="small"
+            type="danger"
+            @click="handleDelete(row)"
+          >删除</el-button>
+          <el-button
+            v-if="row.status === 'submitted' && authStore.hasRole(['admin'])"
+            size="small"
+            type="success"
+            @click="handleApprove(row)"
+          >审核</el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <el-pagination
@@ -50,16 +73,52 @@
       @current-change="load"
       style="margin-top: 16px; justify-content: flex-end"
     />
+
+    <!-- 订单详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="销售订单详情" width="800px">
+      <el-descriptions :column="2" border v-if="detail">
+        <el-descriptions-item label="订单号">{{ detail.order_no }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="statusTag(detail.status)">{{ detail.status }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="客户">{{ detail.customer_name }}</el-descriptions-item>
+        <el-descriptions-item label="仓库">{{ detail.warehouse_name }}</el-descriptions-item>
+        <el-descriptions-item label="总数量">{{ detail.total_quantity }}</el-descriptions-item>
+        <el-descriptions-item label="总金额">{{ detail.total_amount }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detail.created_at }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ detail.updated_at }}</el-descriptions-item>
+      </el-descriptions>
+      <el-table :data="detail?.items || []" border style="margin-top: 16px">
+        <el-table-column prop="product_sku" label="商品编码" width="120" />
+        <el-table-column prop="product_name" label="商品名称" />
+        <el-table-column prop="quantity" label="数量" width="100" />
+        <el-table-column prop="unit_price" label="单价" width="100" />
+        <el-table-column prop="amount" label="金额" width="120" />
+        <el-table-column prop="shipped_quantity" label="已出库" width="100" />
+        <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getSalesOrders, exportSalesOrders } from '@/api/sales'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
+import {
+  getSalesOrders,
+  exportSalesOrders,
+  getSalesOrder,
+  deleteSalesOrder,
+  approveSalesOrder,
+} from '@/api/sales'
 import { downloadBlob } from '@/utils/download'
 import type { SalesOrder } from '@/types'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const list = ref<SalesOrder[]>([])
 const loading = ref(false)
 const page = ref(1)
@@ -68,6 +127,9 @@ const total = ref(0)
 const status = ref<string | undefined>(undefined)
 const customerId = ref<number | undefined>(undefined)
 const keyword = ref('')
+
+const detailVisible = ref(false)
+const detail = ref<SalesOrder | null>(null)
 
 function statusTag(s: string): string {
   const map: Record<string, string> = {
@@ -120,6 +182,34 @@ async function handleExport() {
     downloadBlob(blob, `销售订单_${Date.now()}.xlsx`)
   } catch {
     ElMessage.error('导出失败')
+  }
+}
+
+async function openDetail(row: SalesOrder) {
+  const res = await getSalesOrder(row.id)
+  detail.value = res.data
+  detailVisible.value = true
+}
+
+async function handleDelete(row: SalesOrder) {
+  await ElMessageBox.confirm(`确认删除销售订单「${row.order_no}」？仅草稿状态可删除。`, '提示', { type: 'warning' })
+  try {
+    await deleteSalesOrder(row.id)
+    ElMessage.success('删除成功')
+    load()
+  } catch {
+    /* 拦截器已提示 */
+  }
+}
+
+async function handleApprove(row: SalesOrder) {
+  await ElMessageBox.confirm(`确认审核通过销售订单「${row.order_no}」？`, '提示', { type: 'warning' })
+  try {
+    await approveSalesOrder(row.id)
+    ElMessage.success('审核通过')
+    load()
+  } catch {
+    /* 拦截器已提示 */
   }
 }
 

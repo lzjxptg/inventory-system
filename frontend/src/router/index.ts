@@ -69,6 +69,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '新建采购' },
       },
       {
+        path: 'purchase/edit/:id',
+        name: 'PurchaseEdit',
+        component: () => import('@/views/purchase/PurchaseEdit.vue'),
+        meta: { title: '编辑采购' },
+      },
+      {
+        path: 'suppliers',
+        name: 'SupplierList',
+        component: () => import('@/views/supplier/SupplierList.vue'),
+        meta: { title: '供应商管理' },
+      },
+      {
         path: 'sales',
         name: 'SalesOrders',
         component: () => import('@/views/sales/SalesOrders.vue'),
@@ -79,6 +91,18 @@ const routes: RouteRecordRaw[] = [
         name: 'SalesCreate',
         component: () => import('@/views/sales/SalesCreate.vue'),
         meta: { title: '新建销售' },
+      },
+      {
+        path: 'sales/edit/:id',
+        name: 'SalesEdit',
+        component: () => import('@/views/sales/SalesEdit.vue'),
+        meta: { title: '编辑销售' },
+      },
+      {
+        path: 'customers',
+        name: 'CustomerList',
+        component: () => import('@/views/customer/CustomerList.vue'),
+        meta: { title: '客户管理' },
       },
       {
         path: 'reports/inventory-movements',
