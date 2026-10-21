@@ -4,13 +4,27 @@
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="8">
-          <el-form-item label="客户ID" prop="customer_id">
-            <el-input-number v-model="form.customer_id" :min="1" style="width: 100%" />
+          <el-form-item label="客户" prop="customer_id">
+            <el-select v-model="form.customer_id" placeholder="请选择客户" filterable style="width: 100%">
+              <el-option
+                v-for="c in customers"
+                :key="c.id"
+                :label="c.name"
+                :value="c.id"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="仓库ID" prop="warehouse_id">
-            <el-input-number v-model="form.warehouse_id" :min="1" style="width: 100%" />
+          <el-form-item label="仓库" prop="warehouse_id">
+            <el-select v-model="form.warehouse_id" placeholder="请选择仓库" style="width: 100%">
+              <el-option
+                v-for="w in warehouses"
+                :key="w.id"
+                :label="w.name"
+                :value="w.id"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="8">
@@ -23,9 +37,16 @@
       <el-divider content-position="left">订单明细</el-divider>
 
       <el-table :data="form.items" border>
-        <el-table-column label="商品ID" width="160">
+        <el-table-column label="商品" min-width="200">
           <template #default="{ row }">
-            <el-input-number v-model="row.product_id" :min="1" style="width: 100%" />
+            <el-select v-model="row.product_id" placeholder="请选择商品" filterable style="width: 100%">
+              <el-option
+                v-for="p in products"
+                :key="p.id"
+                :label="`${p.name}（${p.sku}）`"
+                :value="p.id"
+              />
+            </el-select>
           </template>
         </el-table-column>
         <el-table-column label="数量" width="160">
@@ -66,7 +87,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getSalesOrder, updateSalesOrder } from '@/api/sales'
-import type { SalesOrderCreate } from '@/types'
+import { getCustomers } from '@/api/customer'
+import { getWarehouses } from '@/api/warehouse'
+import { getProducts } from '@/api/product'
+import type { SalesOrderCreate, Customer, Warehouse, Product } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,24 +98,39 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const submitting = ref(false)
 
+const customers = ref<Customer[]>([])
+const warehouses = ref<Warehouse[]>([])
+const products = ref<Product[]>([])
+
 const form = reactive<SalesOrderCreate>({
-  customer_id: 1,
-  warehouse_id: 1,
+  customer_id: 0,
+  warehouse_id: 0,
   remark: '',
-  items: [{ product_id: 1, quantity: 1, unit_price: 0 }],
+  items: [{ product_id: 0, quantity: 1, unit_price: 0 }],
 })
 
 const rules: FormRules = {
-  customer_id: [{ required: true, message: '请输入客户ID', trigger: 'blur' }],
-  warehouse_id: [{ required: true, message: '请输入仓库ID', trigger: 'blur' }],
+  customer_id: [{ required: true, message: '请选择客户', trigger: 'change' }],
+  warehouse_id: [{ required: true, message: '请选择仓库', trigger: 'change' }],
 }
 
 function addItem() {
-  form.items.push({ product_id: 1, quantity: 1, unit_price: 0 })
+  form.items.push({ product_id: 0, quantity: 1, unit_price: 0 })
 }
 
 function removeItem(index: number) {
   form.items.splice(index, 1)
+}
+
+async function loadOptions() {
+  const [cRes, wRes, pRes] = await Promise.all([
+    getCustomers({ skip: 0, limit: 1000 }),
+    getWarehouses({ skip: 0, limit: 1000 }),
+    getProducts({ skip: 0, limit: 1000 }),
+  ])
+  customers.value = cRes.data || []
+  warehouses.value = wRes.data || []
+  products.value = pRes.data || []
 }
 
 async function loadOrder() {
@@ -143,5 +182,8 @@ async function handleSubmit() {
   })
 }
 
-onMounted(loadOrder)
+onMounted(() => {
+  loadOptions()
+  loadOrder()
+})
 </script>

@@ -259,6 +259,26 @@ export interface Category {
   created_at: string
 }
 
+export interface CategoryCreate {
+  name: string
+  parent_id?: number | null
+  sort?: number
+}
+
+export interface CategoryUpdate {
+  name?: string
+  parent_id?: number | null
+  sort?: number
+}
+
+export interface CategoryTreeNode {
+  id: number
+  name: string
+  parent_id: number | null
+  sort: number
+  children: CategoryTreeNode[]
+}
+
 // ---------------- 单位 ----------------
 export interface Unit {
   id: number
@@ -267,6 +287,29 @@ export interface Unit {
   sort: number
   is_deleted: number
   created_at: string
+}
+
+export interface UnitCreate {
+  name: string
+  code?: string | null
+  sort?: number
+}
+
+export interface UnitUpdate {
+  name?: string
+  code?: string | null
+  sort?: number
+}
+
+// ---------------- 库存操作 ----------------
+export interface StockMovementCreate {
+  product_id: number
+  warehouse_id: number
+  movement_type?: string
+  quantity: number
+  reference_type?: string | null
+  reference_id?: number | null
+  remark?: string | null
 }
 
 // ---------------- 供应商 ----------------

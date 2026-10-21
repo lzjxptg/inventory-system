@@ -21,7 +21,10 @@
           </template>
           <el-menu-item index="/inventory">库存列表</el-menu-item>
           <el-menu-item index="/inventory/movements">库存流水</el-menu-item>
+          <el-menu-item index="/inventory/operation">库存操作</el-menu-item>
           <el-menu-item index="/products">商品管理</el-menu-item>
+          <el-menu-item index="/categories">分类管理</el-menu-item>
+          <el-menu-item index="/units">单位管理</el-menu-item>
           <el-menu-item index="/warehouses">仓库管理</el-menu-item>
         </el-sub-menu>
 
