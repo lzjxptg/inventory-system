@@ -13,9 +13,6 @@ frontend/dist/
 # 模板目录（不需要打包）
 template/
 
-# 文档（可选排除）
-docs/
-
 # 版本控制
 .git/
 .gitignore

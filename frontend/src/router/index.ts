@@ -206,6 +206,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/settings/UserRole.vue'),
         meta: { title: '用户角色', roles: ['admin'] },
       },
+      {
+        path: 'help/usage',
+        name: 'UsageGuide',
+        component: () => import('@/views/help/UsageGuide.vue'),
+        meta: { title: '使用说明' },
+      },
     ],
   },
   {

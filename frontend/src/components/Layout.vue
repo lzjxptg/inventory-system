@@ -69,6 +69,11 @@
           <el-menu-item index="/settings/roles">角色管理</el-menu-item>
           <el-menu-item index="/settings/user-role">用户角色</el-menu-item>
         </el-sub-menu>
+
+        <el-menu-item index="/help/usage">
+          <el-icon><Reading /></el-icon>
+          <span>使用说明</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -112,6 +117,7 @@ import {
   Setting,
   User,
   ArrowDown,
+  Reading,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
