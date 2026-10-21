@@ -1,4 +1,6 @@
+import axios from 'axios'
 import request from './request'
+import { getToken } from '@/utils/auth'
 import type { ApiResponse, Customer, CustomerCreate, CustomerUpdate } from '@/types'
 
 export interface CustomerQuery {
@@ -29,4 +31,16 @@ export function updateCustomer(id: number, data: CustomerUpdate): Promise<ApiRes
 // 删除客户（逻辑删除）
 export function deleteCustomer(id: number): Promise<ApiResponse<null>> {
   return request.delete(`/customers/${id}`)
+}
+
+// 导出客户 Excel（axios 直连，绕过 request 响应拦截器）
+// 注意：后端 GET /api/v1/customers/export 接口待实现
+export function exportCustomers(params?: Omit<CustomerQuery, 'skip' | 'limit'>): Promise<Blob> {
+  return axios
+    .get('/api/v1/customers/export', {
+      params,
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    .then((res) => res.data as Blob)
 }

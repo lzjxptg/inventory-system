@@ -8,6 +8,7 @@
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
         <el-button type="success" v-permission="'sales:view'" @click="openCreate">新增客户</el-button>
+        <el-button type="warning" v-permission="'sales:view'" :loading="exporting" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -78,11 +79,14 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  exportCustomers,
 } from '@/api/customer'
+import { downloadBlob } from '@/utils/download'
 import type { Customer } from '@/types'
 
 const list = ref<Customer[]>([])
 const loading = ref(false)
+const exporting = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -133,6 +137,21 @@ function handleReset() {
   keyword.value = ''
   page.value = 1
   load()
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const blob = await exportCustomers({
+      keyword: keyword.value || undefined,
+    } as any)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadBlob(blob, `客户列表_${date}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败（后端接口待实现）')
+  } finally {
+    exporting.value = false
+  }
 }
 
 function openCreate() {

@@ -8,6 +8,7 @@
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
         <el-button type="success" v-permission="'purchase:view'" @click="openCreate">新增供应商</el-button>
+        <el-button type="warning" v-permission="'purchase:view'" :loading="exporting" @click="handleExport">导出 Excel</el-button>
       </el-form-item>
     </el-form>
 
@@ -78,11 +79,14 @@ import {
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  exportSuppliers,
 } from '@/api/supplier'
+import { downloadBlob } from '@/utils/download'
 import type { Supplier } from '@/types'
 
 const list = ref<Supplier[]>([])
 const loading = ref(false)
+const exporting = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -133,6 +137,21 @@ function handleReset() {
   keyword.value = ''
   page.value = 1
   load()
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const blob = await exportSuppliers({
+      keyword: keyword.value || undefined,
+    } as any)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadBlob(blob, `供应商列表_${date}.xlsx`)
+  } catch {
+    ElMessage.error('导出失败（后端接口待实现）')
+  } finally {
+    exporting.value = false
+  }
 }
 
 function openCreate() {
