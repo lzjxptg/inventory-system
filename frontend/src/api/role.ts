@@ -1,6 +1,12 @@
 import request from './request'
 import type { Role, Permission, User } from '@/types'
 
+export interface UserCreatePayload {
+  username: string
+  password: string
+  role_id?: number | null
+}
+
 // 角色列表
 export function getRoles() {
   return request.get<unknown, { code: number; data: Role[] }>('/roles')
@@ -54,4 +60,9 @@ export function getUsers() {
 // 分配用户角色
 export function assignUserRole(userId: number, roleId: number) {
   return request.put(`/users/${userId}/role`, { role_id: roleId })
+}
+
+// 创建用户（仅 admin）
+export function createUser(data: UserCreatePayload) {
+  return request.post('/users', data)
 }
