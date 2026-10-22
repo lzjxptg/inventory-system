@@ -327,9 +327,9 @@ def submit_return(db: Session, return_id: int) -> SalesReturn | None:
 
 
 def approve_return(db: Session, return_id: int, approved_by: int) -> SalesReturn | None:
-    """审核通过：submitted -> approved，联动库存（商品出库退回客户，OUT 流水）。
+    """审核通过：submitted -> approved，联动库存（商品由客户退回仓库，IN 流水）。
 
-    出库 quantity 为负数，由 create_stock_movements 校验库存充足。
+    入库 quantity 为正数，库存增加；无需校验库存充足性。
     """
     ret = get_return(db, return_id)
     if ret is None:
@@ -343,8 +343,8 @@ def approve_return(db: Session, return_id: int, approved_by: int) -> SalesReturn
             StockMovementCreate(
                 product_id=item.product_id,
                 warehouse_id=ret.warehouse_id,
-                movement_type="OUT",
-                quantity=-abs(item.quantity),
+                movement_type="IN",
+                quantity=abs(item.quantity),
                 reference_type="SALES_RETURN",
                 reference_id=ret.id,
                 remark=item.batch_no,

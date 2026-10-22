@@ -2,7 +2,7 @@
 
 覆盖：
 - 采购退货：创建、列表、提交、审核通过（验证库存增加+IN流水）、删除草稿、超量退货拦截
-- 销售退货：创建、审核通过（验证库存扣减+OUT流水）
+- 销售退货：创建、审核通过（验证库存增加+IN流水）
 所有测试在独立事务中运行，结束后自动回滚。
 """
 
@@ -253,14 +253,14 @@ async def test_purchase_return_list(
 
 
 @pytest.mark.asyncio
-async def test_sales_return_approve_decreases_stock(
+async def test_sales_return_approve_increases_stock(
     admin_client: AsyncClient, setup_return_data: dict, db_session: Session
 ):
-    """销售退货审核通过后，库存余额扣减，写入 OUT 流水。"""
+    """销售退货审核通过后，库存余额增加，写入 IN 流水。"""
     d = setup_return_data
     pid, wid = d["product_id"], d["warehouse_id"]
 
-    # 1. 先入库 100（通过采购入库），保证有库存可出
+    # 1. 先入库 100（通过采购入库）
     r = await admin_client.post(PURCHASE_ORDERS_PREFIX, json={
         "supplier_id": d["supplier_id"],
         "warehouse_id": wid,
@@ -298,7 +298,7 @@ async def test_sales_return_approve_decreases_stock(
     db_session.expire_all()
     assert _balance(db_session, pid, wid) == Decimal("50.00")
 
-    # 4. 创建销售退货单（退 30，OUT 出库，需库存充足）
+    # 4. 创建销售退货单（退 30，IN 入库）
     r = await admin_client.post(SALES_RETURN_PREFIX, json={
         "sales_order_id": sorder_id,
         "reason": "客户退货",
@@ -312,16 +312,16 @@ async def test_sales_return_approve_decreases_stock(
     r = await admin_client.post(f"{SALES_RETURN_PREFIX}/{ret_id}/approve")
     assert r.json()["data"]["status"] == "approved"
 
-    # 6. 库存应扣减到 20（50 - 30）
+    # 6. 库存应增加到 80（50 + 30）
     db_session.expire_all()
-    assert _balance(db_session, pid, wid) == Decimal("20.00")
+    assert _balance(db_session, pid, wid) == Decimal("80.00")
 
-    # 7. 存在 SALES_RETURN 的 OUT 流水
+    # 7. 存在 SALES_RETURN 的 IN 流水
     mv = db_session.execute(
         select(StockMovement).where(
             StockMovement.reference_type == "SALES_RETURN",
             StockMovement.reference_id == ret_id,
         )
     ).scalar_one()
-    assert mv.movement_type == "OUT"
-    assert mv.quantity == Decimal("-30.00")
+    assert mv.movement_type == "IN"
+    assert mv.quantity == Decimal("30.00")

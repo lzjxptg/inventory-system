@@ -55,7 +55,7 @@
 | 单据 | 审核通过后库存动作 | 流水类型 | 数量符号 |
 |------|------------------|---------|---------|
 | 采购退货 | 商品退回仓库，`inventory_balance` **增加** | `IN` | 正数 |
-| 销售退货 | 商品出库退回客户，`inventory_balance` **扣减** | `OUT` | 负数 |
+| 销售退货 | 商品由客户退回仓库，`inventory_balance` **增加** | `IN` | 正数 |
 
 ### 13.2.3 退货数量约束
 
@@ -173,7 +173,7 @@
 | PUT | /api/v1/sales-returns/{return_id} | 修改退货单（仅 draft，明细全量替换） | 仅登录 | 前端 |
 | DELETE | /api/v1/sales-returns/{return_id} | 删除退货单（仅 draft，逻辑删除） | 仅登录 | 前端 |
 | POST | /api/v1/sales-returns/{return_id}/submit | 提交审核（draft → submitted） | 仅登录 | 前端 |
-| POST | /api/v1/sales-returns/{return_id}/approve | 审核通过（联动库存 OUT） | `sales_return:approve` | 前端 |
+| POST | /api/v1/sales-returns/{return_id}/approve | 审核通过（联动库存 IN） | `sales_return:approve` | 前端 |
 | POST | /api/v1/sales-returns/{return_id}/reject | 驳回（submitted → rejected） | 仅登录 | 前端 |
 
 > 注：采购、销售各 9 行（含详情），其中 create / approve / export 三类接口带权限码校验，其余仅要求登录。
@@ -207,14 +207,14 @@ admin 角色拥有全部 18 项权限；operator 角色拥有退货的 view / cr
 - 更新退货单：`status = "approved"`、`approved_by`、`approved_at = now()`。
 - 统一 `db.commit()` 提交事务。
 
-### 13.6.2 销售退货（OUT 出库）
+### 13.6.2 销售退货（IN 入库）
 
 - 前置校验同上（状态为 `submitted`）。
 - 对每条明细构造 `StockMovementCreate`：
-  - `movement_type = "OUT"`
-  - `quantity = -abs(item.quantity)`（负数）
+  - `movement_type = "IN"`
+  - `quantity = abs(item.quantity)`（正数）
   - `reference_type = "SALES_RETURN"`，`reference_id = return.id`
-- `create_stock_movements` 内部对出库（quantity < 0）校验库存充足，不足则抛 `ValidationException`（40001）并回滚。
+- 商品由客户退回仓库，`inventory_balance.current_quantity` 增加；IN 流水无需校验库存充足性。
 - 更新退货单状态为 `approved`，统一 `commit`。
 
 ### 13.6.3 事务保证
@@ -232,7 +232,7 @@ admin 角色拥有全部 18 项权限；operator 角色拥有退货的 view / cr
 | `test_purchase_return_quantity_exceeds_received` | 退货数量超过已入库数量时返回 `code=40001` |
 | `test_purchase_return_delete_draft_only` | 已提交的退货单删除失败（非草稿不可删） |
 | `test_purchase_return_list` | 列表接口正常返回数组 |
-| `test_sales_return_approve_decreases_stock` | 销售退货审核通过后库存由 50 扣减至 20，且存在 `reference_type=SALES_RETURN` 的 OUT 流水（quantity=-30） |
+| `test_sales_return_approve_increases_stock` | 销售退货审核通过后库存由 50 增至 80，且存在 `reference_type=SALES_RETURN` 的 IN 流水（quantity=30） |
 
 ## 13.8 前端页面
 
