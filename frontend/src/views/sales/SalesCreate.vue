@@ -103,7 +103,8 @@
       <el-button style="margin-top: 12px" @click="addItem">+ 添加明细</el-button>
 
       <el-form-item style="margin-top: 24px">
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交审核</el-button>
+        <el-button :loading="savingDraft" @click="handleSaveDraft">保存草稿</el-button>
         <el-button @click="$router.back()">取消</el-button>
       </el-form-item>
     </el-form>
@@ -115,7 +116,7 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { createSalesOrder } from '@/api/sales'
+import { createSalesOrder, submitSalesOrder } from '@/api/sales'
 import { getCustomers } from '@/api/customer'
 import { getWarehouses } from '@/api/warehouse'
 import { getProducts } from '@/api/product'
@@ -125,6 +126,7 @@ import type { SalesOrderCreate, Customer, Warehouse, Product, CustomerShop } fro
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const savingDraft = ref(false)
 
 const customers = ref<Customer[]>([])
 const warehouses = ref<Warehouse[]>([])
@@ -194,6 +196,39 @@ async function handleSubmit() {
     }
     submitting.value = true
     try {
+      const res = await createSalesOrder({
+        customer_id: form.customer_id,
+        warehouse_id: form.warehouse_id,
+        shop_id: form.shop_id || null,
+        remark: form.remark || undefined,
+        items: form.items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        })),
+      })
+      // 创建成功后自动提交审核
+      if (res.data?.id) {
+        await submitSalesOrder(res.data.id)
+      }
+      ElMessage.success('销售订单创建并提交审核成功')
+      router.push('/sales')
+    } finally {
+      submitting.value = false
+    }
+  })
+}
+
+async function handleSaveDraft() {
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid) => {
+    if (!valid) return
+    if (form.items.length === 0) {
+      ElMessage.warning('至少添加一条明细')
+      return
+    }
+    savingDraft.value = true
+    try {
       await createSalesOrder({
         customer_id: form.customer_id,
         warehouse_id: form.warehouse_id,
@@ -205,10 +240,10 @@ async function handleSubmit() {
           unit_price: i.unit_price,
         })),
       })
-      ElMessage.success('销售订单创建成功')
+      ElMessage.success('销售订单已保存为草稿')
       router.push('/sales')
     } finally {
-      submitting.value = false
+      savingDraft.value = false
     }
   })
 }

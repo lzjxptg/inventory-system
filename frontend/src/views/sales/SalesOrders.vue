@@ -31,7 +31,7 @@
       <el-table-column prop="warehouse_name" label="仓库" width="120" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)">{{ row.status }}</el-tag>
+          <el-tag :type="statusTag(row.status)">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="total_quantity" label="总数量" width="100" />
@@ -47,6 +47,12 @@
             type="primary"
             @click="$router.push(`/sales/edit/${row.id}`)"
           >编辑</el-button>
+          <el-button
+            v-if="row.status === 'draft'"
+            size="small"
+            type="warning"
+            @click="handleSubmit(row)"
+          >提交审核</el-button>
           <el-button
             v-if="row.status === 'draft'"
             size="small"
@@ -113,6 +119,7 @@ import {
   exportSalesOrders,
   getSalesOrder,
   deleteSalesOrder,
+  submitSalesOrder,
   approveSalesOrder,
 } from '@/api/sales'
 import { downloadBlob } from '@/utils/download'
@@ -140,6 +147,17 @@ function statusTag(s: string): string {
     cancelled: 'danger',
   }
   return map[s] || 'info'
+}
+
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    draft: '草稿',
+    submitted: '待审核',
+    approved: '已审核',
+    completed: '已完成',
+    cancelled: '已取消',
+  }
+  return map[s] || s
 }
 
 async function load() {
@@ -196,6 +214,17 @@ async function handleDelete(row: SalesOrder) {
   try {
     await deleteSalesOrder(row.id)
     ElMessage.success('删除成功')
+    load()
+  } catch {
+    /* 拦截器已提示 */
+  }
+}
+
+async function handleSubmit(row: SalesOrder) {
+  await ElMessageBox.confirm(`确认提交审核销售订单「${row.order_no}」？`, '提示', { type: 'warning' })
+  try {
+    await submitSalesOrder(row.id)
+    ElMessage.success('提交审核成功')
     load()
   } catch {
     /* 拦截器已提示 */
