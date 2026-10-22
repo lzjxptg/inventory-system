@@ -133,6 +133,8 @@ export interface SalesOrder {
   warehouse_name: string
   shop_name: string
   shop_address: string
+  shop_contact: string
+  shop_phone: string
   items: any[]
   [key: string]: any
 }

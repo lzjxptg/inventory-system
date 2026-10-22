@@ -68,6 +68,7 @@ class PurchaseOrderItemOut(_BaseSchema):
     is_deleted: int = Field(ge=0, le=1, description="逻辑删除：0正常 1已删除")
     product_name: str = Field(default="", description="商品名称")
     product_sku: str = Field(default="", description="商品编码")
+    unit_name: str = Field(default="", description="单位名称")
 
 
 class PurchaseOrderResponse(_BaseSchema):
@@ -88,6 +89,8 @@ class PurchaseOrderResponse(_BaseSchema):
     is_deleted: int = Field(ge=0, le=1, description="逻辑删除：0正常 1已删除")
     supplier_name: str = Field(default="", description="供应商名称")
     warehouse_name: str = Field(default="", description="仓库名称")
+    created_by_name: str = Field(default="", description="制单人名称")
+    approved_by_name: str = Field(default="", description="审核人名称")
     items: list[PurchaseOrderItemOut] = Field(default_factory=list, description="订单明细")
 
 

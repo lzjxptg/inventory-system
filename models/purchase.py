@@ -119,6 +119,14 @@ class PurchaseOrder(Base, CommonMixin):
     def warehouse_name(self) -> str:
         return self.warehouse.name if self.warehouse is not None else ""
 
+    @property
+    def created_by_name(self) -> str:
+        return self.creator.username if self.creator is not None else ""
+
+    @property
+    def approved_by_name(self) -> str:
+        return self.approver.username if self.approver is not None else ""
+
 
 class PurchaseOrderItem(Base, CommonMixin):
     """采购订单明细。"""
@@ -177,6 +185,10 @@ class PurchaseOrderItem(Base, CommonMixin):
     @property
     def product_sku(self) -> str:
         return self.product.sku if self.product is not None else ""
+
+    @property
+    def unit_name(self) -> str:
+        return self.product.unit_name if self.product is not None else ""
 
 
 class PurchaseIn(Base, CommonMixin):

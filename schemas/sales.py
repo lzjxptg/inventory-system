@@ -74,6 +74,7 @@ class SalesOrderItemOut(_BaseSchema):
     is_deleted: int = Field(ge=0, le=1, description="逻辑删除：0正常 1已删除")
     product_name: str = Field(default="", description="商品名称")
     product_sku: str = Field(default="", description="商品编码")
+    unit_name: str = Field(default="", description="单位名称")
 
 
 class SalesOrderResponse(_BaseSchema):
@@ -97,6 +98,10 @@ class SalesOrderResponse(_BaseSchema):
     warehouse_name: str = Field(default="", description="仓库名称")
     shop_name: str = Field(default="", description="收货门店名称")
     shop_address: str = Field(default="", description="收货门店地址")
+    shop_contact: str = Field(default="", description="收货门店联系人")
+    shop_phone: str = Field(default="", description="收货门店联系电话")
+    created_by_name: str = Field(default="", description="制单人名称")
+    approved_by_name: str = Field(default="", description="审核人名称")
     items: list[SalesOrderItemOut] = Field(default_factory=list, description="订单明细")
 
 

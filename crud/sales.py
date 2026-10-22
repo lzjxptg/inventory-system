@@ -161,6 +161,8 @@ def get_order(db: Session, order_id: int) -> SalesOrder | None:
             joinedload(SalesOrder.customer),
             joinedload(SalesOrder.warehouse),
             joinedload(SalesOrder.shop),
+            joinedload(SalesOrder.creator),
+            joinedload(SalesOrder.approver),
         )
         .where(SalesOrder.id == order_id, SalesOrder.is_deleted == 0)
     )
@@ -183,6 +185,8 @@ def list_orders(
             joinedload(SalesOrder.customer),
             joinedload(SalesOrder.warehouse),
             joinedload(SalesOrder.shop),
+            joinedload(SalesOrder.creator),
+            joinedload(SalesOrder.approver),
         )
         .where(SalesOrder.is_deleted == 0)
     )

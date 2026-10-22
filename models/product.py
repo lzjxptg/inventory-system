@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Numeric, String, func
 from sqlalchemy.dialects.mysql import TINYINT
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
 
@@ -52,6 +52,8 @@ class Product(Base, CommonMixin):
         comment="更新时间",
     )
 
+    unit = relationship("Unit", lazy="select")
+
     __table_args__ = (
         # 逻辑删除后旧记录仍占 sku，故唯一索引包含 is_deleted，使已删除记录不占用 sku
         Index("uq_products_sku", "sku", "is_deleted", unique=True),
@@ -59,3 +61,7 @@ class Product(Base, CommonMixin):
         Index("ix_products_category_id", "category_id"),
         {"comment": "商品表"},
     )
+
+    @property
+    def unit_name(self) -> str:
+        return self.unit.name if self.unit is not None else ""

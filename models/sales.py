@@ -144,6 +144,26 @@ class SalesOrder(Base, CommonMixin):
             return ""
         return self.shop.address
 
+    @property
+    def shop_contact(self) -> str:
+        if self.shop is None or self.shop.contact is None:
+            return ""
+        return self.shop.contact
+
+    @property
+    def shop_phone(self) -> str:
+        if self.shop is None or self.shop.phone is None:
+            return ""
+        return self.shop.phone
+
+    @property
+    def created_by_name(self) -> str:
+        return self.creator.username if self.creator is not None else ""
+
+    @property
+    def approved_by_name(self) -> str:
+        return self.approver.username if self.approver is not None else ""
+
 
 class SalesOrderItem(Base, CommonMixin):
     """销售订单明细。"""
@@ -202,6 +222,10 @@ class SalesOrderItem(Base, CommonMixin):
     @property
     def product_sku(self) -> str:
         return self.product.sku if self.product is not None else ""
+
+    @property
+    def unit_name(self) -> str:
+        return self.product.unit_name if self.product is not None else ""
 
 
 class SalesOut(Base, CommonMixin):

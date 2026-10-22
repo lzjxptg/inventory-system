@@ -65,6 +65,12 @@
             type="success"
             @click="handleApprove(row)"
           >审核</el-button>
+          <el-button
+            v-if="row.status === 'approved'"
+            size="small"
+            type="primary"
+            @click="openDetailPrint(row)"
+          >打印</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -106,13 +112,29 @@
         <el-table-column prop="shipped_quantity" label="已出库" width="100" />
         <el-table-column prop="remark" label="备注" show-overflow-tooltip />
       </el-table>
+      <template #footer>
+        <el-button v-if="detail?.status === 'approved'" type="primary" @click="openPrint">
+          <el-icon><Printer /></el-icon> 打印
+        </el-button>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 打印预览弹窗 -->
+    <el-dialog v-model="printVisible" title="打印预览" width="900px" top="5vh">
+      <PrintOrder v-if="detail" type="sales" :order="detail" />
+      <template #footer>
+        <el-button type="primary" @click="doPrint">打印</el-button>
+        <el-button @click="printVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Printer } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import {
   getSalesOrders,
@@ -123,6 +145,7 @@ import {
   approveSalesOrder,
 } from '@/api/sales'
 import { downloadBlob } from '@/utils/download'
+import PrintOrder from '@/components/PrintOrder.vue'
 import type { SalesOrder } from '@/types'
 
 const authStore = useAuthStore()
@@ -137,6 +160,17 @@ const keyword = ref('')
 
 const detailVisible = ref(false)
 const detail = ref<SalesOrder | null>(null)
+const printVisible = ref(false)
+
+function openPrint() {
+  printVisible.value = true
+}
+
+function doPrint() {
+  nextTick(() => {
+    window.print()
+  })
+}
 
 function statusTag(s: string): string {
   const map: Record<string, string> = {
@@ -207,6 +241,12 @@ async function openDetail(row: SalesOrder) {
   const res = await getSalesOrder(row.id)
   detail.value = res.data
   detailVisible.value = true
+}
+
+async function openDetailPrint(row: SalesOrder) {
+  const res = await getSalesOrder(row.id)
+  detail.value = res.data
+  printVisible.value = true
 }
 
 async function handleDelete(row: SalesOrder) {

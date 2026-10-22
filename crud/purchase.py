@@ -144,6 +144,8 @@ def get_order(db: Session, order_id: int) -> PurchaseOrder | None:
             selectinload(PurchaseOrder.items),
             joinedload(PurchaseOrder.supplier),
             joinedload(PurchaseOrder.warehouse),
+            joinedload(PurchaseOrder.creator),
+            joinedload(PurchaseOrder.approver),
         )
         .where(PurchaseOrder.id == order_id, PurchaseOrder.is_deleted == 0)
     )
@@ -165,6 +167,8 @@ def list_orders(
             selectinload(PurchaseOrder.items),
             joinedload(PurchaseOrder.supplier),
             joinedload(PurchaseOrder.warehouse),
+            joinedload(PurchaseOrder.creator),
+            joinedload(PurchaseOrder.approver),
         )
         .where(PurchaseOrder.is_deleted == 0)
     )
