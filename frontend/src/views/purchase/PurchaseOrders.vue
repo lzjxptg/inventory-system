@@ -65,6 +65,7 @@
             type="success"
             @click="handleApprove(row)"
           >审核</el-button>
+          <!-- 打印为只读操作，跟随订单查看权限，不单独鉴权 -->
           <el-button
             v-if="row.status === 'approved'"
             size="small"
@@ -111,6 +112,7 @@
         <el-table-column prop="remark" label="备注" show-overflow-tooltip />
       </el-table>
       <template #footer>
+        <!-- 打印为只读操作，跟随订单查看权限，不单独鉴权 -->
         <el-button v-if="detail?.status === 'approved'" type="primary" @click="openPrint">
           <el-icon><Printer /></el-icon> 打印
         </el-button>
