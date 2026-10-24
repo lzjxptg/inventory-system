@@ -31,7 +31,7 @@ from .customer_shop import (  # noqa: E402
     CustomerShopUpdate,
 )
 from .warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate  # noqa: E402
-from .user import ResetPassword, Token, UserCreate, UserOut  # noqa: E402
+from .user import ResetPassword, Token, UserCreate, UserOut, UserUpdate  # noqa: E402
 from .role import (  # noqa: E402
     PermissionOut,
     RoleCreate,
@@ -115,6 +115,7 @@ __all__ = [
     "WarehouseResponse",
     # user / auth
     "UserCreate",
+    "UserUpdate",
     "UserOut",
     "Token",
     "ResetPassword",

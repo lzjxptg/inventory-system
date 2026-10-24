@@ -11,9 +11,20 @@
       <el-table-column prop="description" label="描述" />
       <el-table-column label="操作" width="280">
         <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
+          <el-button
+            size="small"
+            :disabled="isBuiltin(row)"
+            :title="isBuiltin(row) ? '系统内置角色不可修改角色编码' : ''"
+            @click="openEdit(row)"
+          >编辑</el-button>
           <el-button size="small" type="warning" @click="openPermission(row)">分配权限</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+          <el-button
+            size="small"
+            type="danger"
+            :disabled="isBuiltin(row)"
+            :title="isBuiltin(row) ? '系统内置角色不可删除' : ''"
+            @click="handleDelete(row)"
+          >删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -22,7 +33,11 @@
     <el-dialog v-model="roleDialogVisible" :title="editingId ? '编辑角色' : '新建角色'" width="420px">
       <el-form :model="roleForm" label-width="80px">
         <el-form-item label="角色编码">
-          <el-input v-model="roleForm.name" placeholder="如 admin" />
+          <el-input
+            v-model="roleForm.name"
+            placeholder="如 admin"
+            :disabled="isBuiltinByName(roleForm.name)"
+          />
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="roleForm.description" type="textarea" :rows="3" />
@@ -71,6 +86,12 @@ import type { Role, Permission } from '@/types'
 
 const roles = ref<Role[]>([])
 const allPermissions = ref<Permission[]>([])
+
+// 系统内置角色编码，不可修改编码、不可删除
+const BUILTIN_ROLE_NAMES = ['admin', 'operator']
+
+const isBuiltin = (row: Role): boolean => BUILTIN_ROLE_NAMES.includes(row.name)
+const isBuiltinByName = (name: string): boolean => BUILTIN_ROLE_NAMES.includes(name)
 
 const roleDialogVisible = ref(false)
 const editingId = ref<number | null>(null)

@@ -1,8 +1,9 @@
 """用户管理路由。
 
-提供创建用户、删除用户、重置密码接口。
+提供创建用户、编辑用户、删除用户、重置密码、按角色统计用户数接口。
 - 列表（GET /users）与角色分配（PUT /users/{id}/role）位于 roles.py；
-- 本文件负责 POST /users、DELETE /users/{id}、PUT /users/{id}/reset-password。
+- 本文件负责 POST /users、PUT /users/{id}、DELETE /users/{id}、
+  PUT /users/{id}/reset-password、GET /users/count-by-role。
 所有端点需登录鉴权，且仅限 admin 角色。
 响应统一用 success()/error() 包装。
 """
@@ -15,17 +16,17 @@ from core.dependencies import get_current_user
 from core.exceptions import ConflictException, NotFoundException, ValidationException
 from core.permissions import require_role
 from core.response import success
-from crud.role import get_role_by_name
+from crud.role import get_role
 from crud.user import (
-    count_active_admins,
+    count_users_by_role,
     create_user,
-    get_user_by_id,
+    delete_user,
     get_user_by_username,
-    soft_delete_user,
+    update_user,
     update_user_password,
 )
 from models.user import User
-from schemas.user import ResetPassword, UserCreate, UserOut
+from schemas.user import ResetPassword, UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/api/v1/users", tags=["用户管理"])
 
@@ -44,8 +45,6 @@ def create_user_api(
 
     # 若指定了 role_id，校验角色存在
     if user_in.role_id is not None:
-        from crud.role import get_role
-
         if get_role(db, user_in.role_id) is None:
             raise ValidationException("指定的角色不存在")
 
@@ -53,6 +52,32 @@ def create_user_api(
     return success(
         data=UserOut.model_validate(user).model_dump(),
         msg="创建成功",
+    )
+
+
+@router.get("/count-by-role", dependencies=[Depends(require_role("admin"))])
+def count_users_by_role_api(role_key: str, db: Session = Depends(get_db)):
+    """统计指定角色的启用用户数量（仅 admin）。"""
+    count = count_users_by_role(db, role_key)
+    return success(data={"role_key": role_key, "count": count})
+
+
+@router.put("/{user_id}", dependencies=[Depends(require_role("admin"))])
+def update_user_api(
+    user_id: int,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+):
+    """更新用户信息（仅 admin）。
+
+    可更新用户名、角色、密码（密码留空则不修改）。
+    """
+    user = update_user(db, user_id, user_in)
+    if user is None:
+        raise NotFoundException("用户不存在")
+    return success(
+        data=UserOut.model_validate(user).model_dump(),
+        msg="更新成功",
     )
 
 
@@ -67,21 +92,7 @@ def delete_user_api(
     - 不允许删除自己
     - 不允许删除最后一个启用的 admin
     """
-    # 不能删除自己
-    if current_user.id == user_id:
-        raise ValidationException("不能删除当前登录用户")
-
-    target = get_user_by_id(db, user_id)
-    if target is None:
-        raise NotFoundException("用户不存在")
-
-    # 若目标用户是 admin，检查是否为最后一个启用的 admin
-    admin_role = get_role_by_name(db, "admin")
-    if admin_role is not None and target.role_id == admin_role.id:
-        if count_active_admins(db, admin_role.id) <= 1:
-            raise ValidationException("不能删除最后一个管理员，至少保留一个管理员账号")
-
-    soft_delete_user(db, user_id)
+    delete_user(db, user_id, operator_id=current_user.id)
     return success(msg="删除成功")
 
 

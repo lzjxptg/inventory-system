@@ -142,6 +142,47 @@ async def auth_client(client: AsyncClient, db_session: Session):
     yield client
 
 
+@pytest.fixture
+async def admin_client(client: AsyncClient, db_session: Session):
+    """带 admin 角色 JWT 的异步测试客户端。
+
+    创建 admin 角色并绑定到测试用户，用于需要管理员权限的接口测试
+    （如订单审核、用户管理等）。
+    """
+    from models.role import Role
+
+    username = "admintest"
+    password = "adminpass123"
+
+    # 创建 admin 角色
+    role = Role(name="admin", description="超级管理员")
+    db_session.add(role)
+    db_session.commit()
+    db_session.refresh(role)
+
+    # 创建绑定 admin 角色的用户
+    user = User(
+        username=username,
+        hashed_password=get_password_hash(password),
+        is_active=True,
+        role_id=role.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    # 调用登录接口获取 Token
+    resp = await client.post(
+        "/api/v1/auth/login",
+        data={"username": username, "password": password},
+    )
+    assert resp.status_code == 200, f"登录失败: {resp.text}"
+    token = resp.json()["access_token"]
+
+    client.headers["Authorization"] = f"Bearer {token}"
+    yield client
+
+
 # ---------------------------------------------------------------------------
 # 业务基础数据（仓库/单位/分类/商品）fixture
 # ---------------------------------------------------------------------------

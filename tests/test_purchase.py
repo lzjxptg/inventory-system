@@ -321,13 +321,13 @@ async def test_submit_order_not_in_draft(auth_client: AsyncClient, setup_purchas
 
 
 @pytest.mark.asyncio
-async def test_approve_order(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_approve_order(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """submitted -> approved，approved_by 有值。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
     order_id = order_data.json()["data"]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
 
-    resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
     assert resp.status_code == 200
     assert resp.json()["code"] == 0
 
@@ -337,25 +337,25 @@ async def test_approve_order(auth_client: AsyncClient, setup_purchase_data: dict
 
 
 @pytest.mark.asyncio
-async def test_approve_order_not_in_submitted(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_approve_order_not_in_submitted(admin_client: AsyncClient, setup_purchase_data: dict):
     """非 submitted 审核，预期 40901。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
     order_id = order_data.json()["data"]["id"]
     # draft 直接审核
-    resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"非 submitted 审核应返回40901: {resp.text}"
 
 
 @pytest.mark.asyncio
-async def test_approve_twice(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_approve_twice(admin_client: AsyncClient, setup_purchase_data: dict):
     """重复审核，预期 40901。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data))
     order_id = order_data.json()["data"]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
 
-    resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"重复审核应返回40901: {resp.text}"
 
@@ -375,24 +375,24 @@ async def test_cancel_order_in_draft(auth_client: AsyncClient, setup_purchase_da
 
 
 @pytest.mark.asyncio
-async def test_cancel_order_completed(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_cancel_order_completed(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """completed 不可取消，预期 40901。"""
     # 创建订单 -> 审核 -> 入库全部收齐 -> completed
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
 
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "100"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
-    await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
 
-    resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/cancel")
+    resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/cancel")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"completed 不可取消: {resp.text}"
 
@@ -403,15 +403,15 @@ async def test_cancel_order_completed(auth_client: AsyncClient, setup_purchase_d
 
 
 @pytest.mark.asyncio
-async def test_create_in_from_approved_order(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_create_in_from_approved_order(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """基于 approved 订单创建入库单，落库且状态 draft。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
 
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
@@ -438,38 +438,38 @@ async def test_create_in_from_draft_order(auth_client: AsyncClient, setup_purcha
 
 
 @pytest.mark.asyncio
-async def test_list_ins(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_list_ins(admin_client: AsyncClient, setup_purchase_data: dict):
     """列表返回 200。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
 
-    resp = await auth_client.get(INS_PREFIX)
+    resp = await admin_client.get(INS_PREFIX)
     assert resp.status_code == 200
     assert len(resp.json()["data"]) == 1
 
 
 @pytest.mark.asyncio
-async def test_get_in_detail(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_get_in_detail(admin_client: AsyncClient, setup_purchase_data: dict):
     """详情含 items。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
 
-    resp = await auth_client.get(f"{INS_PREFIX}/{in_id}")
+    resp = await admin_client.get(f"{INS_PREFIX}/{in_id}")
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert len(data["items"]) == 1
@@ -477,21 +477,21 @@ async def test_get_in_detail(auth_client: AsyncClient, setup_purchase_data: dict
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_success(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_success(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """确认入库：status=confirmed，confirmed_by 有值，confirmed_at 有值。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
 
-    resp = await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
     assert resp.status_code == 200
     assert resp.json()["code"] == 0
 
@@ -502,32 +502,32 @@ async def test_confirm_in_success(auth_client: AsyncClient, setup_purchase_data:
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_overflow(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_overflow(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """超收：确认时 received_quantity + 本次 > 订购数量，预期 40001，数据不变。
 
     通过创建两张入库单（60 + 50），先确认 60，再确认 50 时 60+50=110 > 100 触发超收。
     """
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
 
     # 两张入库单：60 + 50，合计 110 > 100
-    in1_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in1_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "60"}]
     })
     in1_id = in1_resp.json()["data"]["id"]
-    in2_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in2_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     in2_id = in2_resp.json()["data"]["id"]
 
     # 先确认 60，成功
-    await auth_client.post(f"{INS_PREFIX}/{in1_id}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in1_id}/confirm")
 
     # 确认 50 时超收，预期 40001
-    resp = await auth_client.post(f"{INS_PREFIX}/{in2_id}/confirm")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in2_id}/confirm")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40001, f"超收应返回40001: {resp.text}"
 
@@ -554,71 +554,71 @@ async def test_confirm_in_overflow(auth_client: AsyncClient, setup_purchase_data
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_twice(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_confirm_in_twice(admin_client: AsyncClient, setup_purchase_data: dict):
     """重复确认，预期 40901。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
-    await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
 
-    resp = await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"重复确认应返回40901: {resp.text}"
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_not_in_draft(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_confirm_in_not_in_draft(admin_client: AsyncClient, setup_purchase_data: dict):
     """非 draft 确认（已取消），预期 40901。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
-    await auth_client.post(f"{INS_PREFIX}/{in_id}/cancel")
+    await admin_client.post(f"{INS_PREFIX}/{in_id}/cancel")
 
-    resp = await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"非 draft 确认应返回40901: {resp.text}"
 
 
 @pytest.mark.asyncio
-async def test_partial_in_twice(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_partial_in_twice(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """两次分批入库合计=订购数，订单状态=completed。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
 
     # 第一次入库 60
-    in1_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in1_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "60"}]
     })
-    await auth_client.post(f"{INS_PREFIX}/{in1_resp.json()['data']['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in1_resp.json()['data']['id']}/confirm")
 
     # 订单应为 partial_in
     order = db_session.execute(select(PurchaseOrder).where(PurchaseOrder.id == order_id)).scalar_one()
     assert order.status == "partial_in", "部分入库后状态应为 partial_in"
 
     # 第二次入库 40
-    in2_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    in2_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "40"}]
     })
-    await auth_client.post(f"{INS_PREFIX}/{in2_resp.json()['data']['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in2_resp.json()['data']['id']}/confirm")
 
     # 订单应为 completed
     db_session.refresh(order)
@@ -632,21 +632,21 @@ async def test_partial_in_twice(auth_client: AsyncClient, setup_purchase_data: d
 
 
 @pytest.mark.asyncio
-async def test_cancel_in_in_draft(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_cancel_in_in_draft(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """draft 入库单可取消。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
 
-    resp = await auth_client.post(f"{INS_PREFIX}/{in_id}/cancel")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in_id}/cancel")
     assert resp.status_code == 200
     assert resp.json()["code"] == 0
 
@@ -655,22 +655,22 @@ async def test_cancel_in_in_draft(auth_client: AsyncClient, setup_purchase_data:
 
 
 @pytest.mark.asyncio
-async def test_cancel_in_confirmed(auth_client: AsyncClient, setup_purchase_data: dict):
+async def test_cancel_in_confirmed(admin_client: AsyncClient, setup_purchase_data: dict):
     """confirmed 入库单不可取消，预期 40901。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
-    await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
 
-    resp = await auth_client.post(f"{INS_PREFIX}/{in_id}/cancel")
+    resp = await admin_client.post(f"{INS_PREFIX}/{in_id}/cancel")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40901, f"confirmed 不可取消: {resp.text}"
 
@@ -681,19 +681,19 @@ async def test_cancel_in_confirmed(auth_client: AsyncClient, setup_purchase_data
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_updates_received_quantity(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_updates_received_quantity(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """确认入库后 received_quantity 累加正确。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
-    await auth_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
 
     item = db_session.execute(
         select(PurchaseOrderItem).where(PurchaseOrderItem.id == order_item_id)
@@ -702,59 +702,59 @@ async def test_confirm_in_updates_received_quantity(auth_client: AsyncClient, se
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_updates_order_status_partial(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_updates_order_status_partial(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """未收齐 -> partial_in。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
-    await auth_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
 
     order = db_session.execute(select(PurchaseOrder).where(PurchaseOrder.id == order_id)).scalar_one()
     assert order.status == "partial_in"
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_updates_order_status_completed(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_updates_order_status_completed(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """收齐 -> completed。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "100"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
-    await auth_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
 
     order = db_session.execute(select(PurchaseOrder).where(PurchaseOrder.id == order_id)).scalar_one()
     assert order.status == "completed"
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_increases_inventory_balance(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_increases_inventory_balance(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """确认入库后库存余额增加量=入库量。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
     pid = setup_purchase_data["product_id"]
     wid = setup_purchase_data["warehouse_id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
-    await auth_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_data['id']}/confirm")
 
     balance = db_session.execute(
         select(InventoryBalance).where(
@@ -766,20 +766,20 @@ async def test_confirm_in_increases_inventory_balance(auth_client: AsyncClient, 
 
 
 @pytest.mark.asyncio
-async def test_confirm_in_creates_stock_movement(auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
+async def test_confirm_in_creates_stock_movement(admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session):
     """确认入库后库存流水存在，字段正确。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
     in_data = in_resp.json()["data"]
     in_id = in_data["id"]
-    await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+    await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
 
     movement = db_session.execute(
         select(StockMovement).where(
@@ -795,15 +795,15 @@ async def test_confirm_in_creates_stock_movement(auth_client: AsyncClient, setup
 
 @pytest.mark.asyncio
 async def test_confirm_in_atomicity(
-    auth_client: AsyncClient, setup_purchase_data: dict, db_session: Session, monkeypatch
+    admin_client: AsyncClient, setup_purchase_data: dict, db_session: Session, monkeypatch
 ):
     """确认入库过程中 commit 抛异常，订单 received_quantity 不变、库存余额不变、无新流水。"""
-    order_data = await auth_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
+    order_data = await admin_client.post(ORDERS_PREFIX, json=_create_order_payload(setup_purchase_data, quantity="100"))
     order_id = order_data.json()["data"]["id"]
     order_item_id = order_data.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
-    await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
-    in_resp = await auth_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/submit")
+    await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/approve")
+    in_resp = await admin_client.post(f"{ORDERS_PREFIX}/{order_id}/ins", json={
         "items": [{"purchase_order_item_id": order_item_id, "quantity": "50"}]
     })
     assert in_resp.status_code == 200
@@ -823,7 +823,7 @@ async def test_confirm_in_atomicity(
     monkeypatch.setattr(db_session, "commit", failing_commit)
 
     with pytest.raises(RuntimeError):
-        await auth_client.post(f"{INS_PREFIX}/{in_id}/confirm")
+        await admin_client.post(f"{INS_PREFIX}/{in_id}/confirm")
 
     monkeypatch.undo()
     db_session.rollback()

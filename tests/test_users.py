@@ -158,14 +158,14 @@ async def test_delete_user_success(admin_client: AsyncClient, db_session: Sessio
 
 @pytest.mark.asyncio
 async def test_delete_user_self_forbidden(admin_client: AsyncClient, db_session: Session):
-    """不能删除当前登录用户自己。"""
+    """不能删除当前登录用户自己，返回 40901 冲突。"""
     me = db_session.execute(
         select(User).where(User.username == "admintest")
     ).scalar_one()
 
     resp = await admin_client.delete(f"/api/v1/users/{me.id}")
     assert resp.status_code == 200
-    assert resp.json()["code"] == 40001
+    assert resp.json()["code"] == 40901
 
 
 @pytest.mark.asyncio
@@ -213,7 +213,7 @@ async def test_delete_admin_leaves_last_one_protected(
     ).scalar_one()
     resp = await admin_client.delete(f"/api/v1/users/{me.id}")
     assert resp.status_code == 200
-    assert resp.json()["code"] == 40001
+    assert resp.json()["code"] == 40901
 
 
 @pytest.mark.asyncio
@@ -231,6 +231,119 @@ async def test_delete_user_operator_forbidden(auth_client: AsyncClient, db_sessi
     resp = await auth_client.delete(f"/api/v1/users/{user.id}")
     assert resp.status_code == 200
     assert resp.json()["code"] == 40301
+
+
+@pytest.mark.asyncio
+async def test_delete_last_admin_fails(
+    admin_client: AsyncClient, db_session: Session
+):
+    """删除唯一管理员返回 40901，保护至少保留一个管理员。
+
+    由于唯一能删除用户的是 admin，当系统只剩一个 admin 时，
+    通过 API 触发删除必然是自删（被自删保护拦截）。
+    因此本用例通过 crud 层直接验证「最后一个 admin 不可被他人删除」
+    的核心保护逻辑，并通过 API 验证删除第二个 admin 后保护生效。
+    """
+    from core.exceptions import ConflictException
+    from crud.user import delete_user
+
+    admin_role = db_session.execute(
+        select(Role).where(Role.name == "admin")
+    ).scalar_one()
+
+    # 当前只有 admintest 一个 active admin
+    assert count_active_admins(db_session, admin_role.id) == 1
+
+    # 创建第二个 active admin
+    other = User(
+        username="other_admin",
+        hashed_password=get_password_hash("pass12345"),
+        is_active=True,
+        role_id=admin_role.id,
+    )
+    db_session.add(other)
+    db_session.commit()
+    db_session.refresh(other)
+    assert count_active_admins(db_session, admin_role.id) == 2
+
+    # admintest 删除 other_admin → 成功，仅剩 admintest
+    resp = await admin_client.delete(f"/api/v1/users/{other.id}")
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+    assert count_active_admins(db_session, admin_role.id) == 1
+
+    # 此时 admintest 是唯一 admin，模拟其他操作者删除该唯一 admin → 拒绝
+    me = db_session.execute(
+        select(User).where(User.username == "admintest")
+    ).scalar_one()
+    with pytest.raises(ConflictException) as exc_info:
+        delete_user(db_session, me.id, operator_id=999999)
+    assert "唯一管理员" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_delete_self_fails(admin_client: AsyncClient, db_session: Session):
+    """当前登录用户删除自己返回 40901。"""
+    me = db_session.execute(
+        select(User).where(User.username == "admintest")
+    ).scalar_one()
+
+    resp = await admin_client.delete(f"/api/v1/users/{me.id}")
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 40901
+    assert "不能删除" in resp.json()["msg"]
+
+
+@pytest.mark.asyncio
+async def test_delete_admin_when_two_admins_ok(
+    admin_client: AsyncClient, db_session: Session
+):
+    """存在两个及以上 admin 时，可以删除其中任意一个。"""
+    admin_role = db_session.execute(
+        select(Role).where(Role.name == "admin")
+    ).scalar_one()
+
+    # 创建第二个 active admin
+    other = User(
+        username="admin_two",
+        hashed_password=get_password_hash("pass12345"),
+        is_active=True,
+        role_id=admin_role.id,
+    )
+    db_session.add(other)
+    db_session.commit()
+    db_session.refresh(other)
+    assert count_active_admins(db_session, admin_role.id) == 2
+
+    # 删除另一个 admin 应成功（仍剩 admintest）
+    resp = await admin_client.delete(f"/api/v1/users/{other.id}")
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+    assert count_active_admins(db_session, admin_role.id) == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_normal_user_ok(
+    admin_client: AsyncClient, db_session: Session
+):
+    """删除普通用户（非 admin）成功。"""
+    user = User(
+        username="normal_user",
+        hashed_password=get_password_hash("pass12345"),
+        is_active=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    resp = await admin_client.delete(f"/api/v1/users/{user.id}")
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 0
+
+    u = db_session.execute(
+        select(User).where(User.id == user.id)
+    ).scalar_one()
+    assert u.is_deleted == 1
 
 
 # ---------------------------------------------------------------------------

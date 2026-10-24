@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { login as loginApi } from '@/api/auth'
-import { getMyPermissions } from '@/api/role'
+import { getMyPermissions, getCurrentUserInfo } from '@/api/role'
 import { ElMessage } from 'element-plus'
 import {
   getToken,
@@ -33,15 +33,26 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await loginApi({ username, password })
       if (res.access_token) {
         token.value = res.access_token
+        setToken(res.access_token)
         // 从 JWT 载荷解析用户名与角色
         const payload = decodeJwtPayload(res.access_token)
-        const u: User = {
-          id: 0,
-          username: payload?.sub || username,
-          role: payload?.role || 'operator',
+        // 拉取完整用户信息（含 id），避免仅靠 JWT 中的 sub(username) 缺失主键
+        let u: User
+        try {
+          const meRes = await getCurrentUserInfo()
+          u = {
+            id: meRes.data.id,
+            username: meRes.data.username,
+            role: meRes.data.role || payload?.role || 'operator',
+          }
+        } catch {
+          u = {
+            id: 0,
+            username: payload?.sub || username,
+            role: payload?.role || 'operator',
+          }
         }
         user.value = u
-        setToken(res.access_token)
         setUserInfo(u)
         // 登录后立即获取当前用户权限 code 列表
         await fetchPermissions()

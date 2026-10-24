@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from core.excel_export import build_excel_bytes, dated_filename, excel_response
-from core.permissions import require_permission
+from core.permissions import require_permission, require_role
 from core.response import error, success
 from crud.sales import (
     approve_order,
@@ -155,10 +155,10 @@ def submit_order_api(
 @router.post("/orders/{order_id}/approve")
 def approve_order_api(
     order_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
-    """审核通过：submitted -> approved。"""
+    """审核通过：submitted -> approved。仅 admin 可操作。"""
     item = approve_order(db, order_id, current_user.id)
     if item is None:
         return error(code=404, msg="销售订单不存在")

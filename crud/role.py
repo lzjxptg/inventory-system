@@ -7,8 +7,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from core.exceptions import ConflictException
 from models.role import Permission, Role, RolePermission
 from schemas.role import RoleCreate, RoleUpdate
+
+# 系统内置角色，不可修改角色编码、不可删除
+BUILTIN_ROLE_NAMES = {"admin", "operator"}
 
 
 def get_role(db: Session, role_id: int) -> Role | None:
@@ -52,11 +56,14 @@ def create_role(db: Session, role_in: RoleCreate) -> Role:
 
 
 def update_role(db: Session, role_id: int, role_in: RoleUpdate) -> Role | None:
-    """更新角色。若修改 name，校验唯一。"""
+    """更新角色。若修改 name，校验唯一；内置角色不可修改 name。"""
     db_role = get_role(db, role_id)
     if db_role is None:
         return None
     update_data = role_in.model_dump(exclude_unset=True)
+    # 内置角色不允许修改角色编码（name）
+    if "name" in update_data and db_role.name in BUILTIN_ROLE_NAMES:
+        raise ConflictException("系统内置角色不可修改角色编码")
     if "name" in update_data and update_data["name"] != db_role.name:
         if get_role_by_name(db, update_data["name"]) is not None:
             from fastapi import HTTPException, status
@@ -73,10 +80,12 @@ def update_role(db: Session, role_id: int, role_in: RoleUpdate) -> Role | None:
 
 
 def delete_role(db: Session, role_id: int) -> bool:
-    """逻辑删除角色。"""
+    """逻辑删除角色。内置角色不可删除。"""
     db_role = get_role(db, role_id)
     if db_role is None:
         return False
+    if db_role.name in BUILTIN_ROLE_NAMES:
+        raise ConflictException("系统内置角色不可删除")
     db_role.is_deleted = 1
     db.commit()
     return True

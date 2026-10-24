@@ -66,3 +66,24 @@ export function assignUserRole(userId: number, roleId: number) {
 export function createUser(data: UserCreatePayload) {
   return request.post('/users', data)
 }
+
+// 编辑用户（仅 admin，可更新用户名/角色/密码）
+export function updateUser(
+  id: number,
+  data: { username?: string; password?: string; role_id?: number | null },
+) {
+  return request.put(`/users/${id}`, data)
+}
+
+// 删除用户（仅 admin）
+export function deleteUser(id: number) {
+  return request.delete(`/users/${id}`)
+}
+
+// 统计指定角色的启用用户数量（仅 admin）
+export function countUsersByRole(roleKey: string) {
+  return request.get<unknown, { code: number; data: { role_key: string; count: number } }>(
+    '/users/count-by-role',
+    { params: { role_key: roleKey } },
+  )
+}

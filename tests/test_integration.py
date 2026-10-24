@@ -64,7 +64,7 @@ def _balance(db: Session, product_id: int, warehouse_id: int) -> Decimal:
 
 
 @pytest.mark.asyncio
-async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
+async def test_e2e_purchase_to_sale(admin_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
     """核心闭环：采购 100 入库 → 销售 60 出库，验证库存与流水一致性。"""
     pid = setup_e2e_data["product_id"]
     wid = setup_e2e_data["warehouse_id"]
@@ -72,7 +72,7 @@ async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: di
     cid = setup_e2e_data["customer_id"]
 
     # ---- Step 2: 创建采购订单 ----
-    r = await auth_client.post(PURCHASE_ORDERS, json={
+    r = await admin_client.post(PURCHASE_ORDERS, json={
         "supplier_id": sid,
         "warehouse_id": wid,
         "items": [{"product_id": pid, "quantity": "100", "unit_price": "10.00"}],
@@ -84,19 +84,19 @@ async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: di
     assert r.json()["data"]["status"] == "draft", "Step 2 新建采购订单应为 draft"
 
     # ---- Step 3: 提交并审核采购订单 ----
-    r = await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/submit")
+    r = await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/submit")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 3 提交采购订单失败"
-    r = await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/approve")
+    r = await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/approve")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 3 审核采购订单失败"
 
     # ---- Step 4: 创建并确认采购入库单 ----
-    r = await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
+    r = await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
         "items": [{"purchase_order_item_id": po_item_id, "quantity": "100",
                    "unit_price": "10.00", "batch_no": "E2E-BATCH-001"}],
     })
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 4 创建入库单失败"
     in_id = r.json()["data"]["id"]
-    r = await auth_client.post(f"{PURCHASE_INS}/{in_id}/confirm")
+    r = await admin_client.post(f"{PURCHASE_INS}/{in_id}/confirm")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 4 确认入库单失败"
 
     po = db_session.execute(select(PurchaseOrder).where(PurchaseOrder.id == po_id)).scalar_one()
@@ -117,7 +117,7 @@ async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: di
     assert mv_in.quantity == Decimal("100.00"), "Step 5 入库流水数量应为 100"
 
     # ---- Step 6: 创建销售订单 ----
-    r = await auth_client.post(SALES_ORDERS, json={
+    r = await admin_client.post(SALES_ORDERS, json={
         "customer_id": cid,
         "warehouse_id": wid,
         "items": [{"product_id": pid, "quantity": "60", "unit_price": "15.00"}],
@@ -128,19 +128,19 @@ async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: di
     assert r.json()["data"]["status"] == "draft", "Step 6 新建销售订单应为 draft"
 
     # ---- Step 7: 提交并审核销售订单 ----
-    r = await auth_client.post(f"{SALES_ORDERS}/{so_id}/submit")
+    r = await admin_client.post(f"{SALES_ORDERS}/{so_id}/submit")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 7 提交销售订单失败"
-    r = await auth_client.post(f"{SALES_ORDERS}/{so_id}/approve")
+    r = await admin_client.post(f"{SALES_ORDERS}/{so_id}/approve")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 7 审核销售订单失败"
 
     # ---- Step 8: 创建并确认销售出库单 ----
-    r = await auth_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
+    r = await admin_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
         "items": [{"sales_order_item_id": so_item_id, "quantity": "60",
                    "unit_price": "15.00", "batch_no": "E2E-OUT-001"}],
     })
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 8 创建出库单失败"
     out_id = r.json()["data"]["id"]
-    r = await auth_client.post(f"{SALES_OUTS}/{out_id}/confirm")
+    r = await admin_client.post(f"{SALES_OUTS}/{out_id}/confirm")
     assert r.status_code == 200 and r.json()["code"] == 0, "Step 8 确认出库单失败"
 
     so = db_session.execute(select(SalesOrder).where(SalesOrder.id == so_id)).scalar_one()
@@ -183,7 +183,7 @@ async def test_e2e_purchase_to_sale(auth_client: AsyncClient, setup_e2e_data: di
 
 
 @pytest.mark.asyncio
-async def test_e2e_partial_purchase_then_sale(auth_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
+async def test_e2e_partial_purchase_then_sale(admin_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
     """采购 50 分批入库（30 + 20）→ 销售 20 出库，验证最终库存 30、流水 3 条。"""
     pid = setup_e2e_data["product_id"]
     wid = setup_e2e_data["warehouse_id"]
@@ -191,44 +191,44 @@ async def test_e2e_partial_purchase_then_sale(auth_client: AsyncClient, setup_e2
     cid = setup_e2e_data["customer_id"]
 
     # 采购订单 50
-    r = await auth_client.post(PURCHASE_ORDERS, json={
+    r = await admin_client.post(PURCHASE_ORDERS, json={
         "supplier_id": sid, "warehouse_id": wid,
         "items": [{"product_id": pid, "quantity": "50", "unit_price": "8.00"}],
     })
     po_id = r.json()["data"]["id"]
     po_item_id = r.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/submit")
-    await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/approve")
+    await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/submit")
+    await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/approve")
 
     # 分批入库：30 + 20
-    r1 = await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
+    r1 = await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
         "items": [{"purchase_order_item_id": po_item_id, "quantity": "30", "unit_price": "8.00"}],
     })
-    await auth_client.post(f"{PURCHASE_INS}/{r1.json()['data']['id']}/confirm")
-    r2 = await auth_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
+    await admin_client.post(f"{PURCHASE_INS}/{r1.json()['data']['id']}/confirm")
+    r2 = await admin_client.post(f"{PURCHASE_ORDERS}/{po_id}/ins", json={
         "items": [{"purchase_order_item_id": po_item_id, "quantity": "20", "unit_price": "8.00"}],
     })
-    await auth_client.post(f"{PURCHASE_INS}/{r2.json()['data']['id']}/confirm")
+    await admin_client.post(f"{PURCHASE_INS}/{r2.json()['data']['id']}/confirm")
 
     po = db_session.execute(select(PurchaseOrder).where(PurchaseOrder.id == po_id)).scalar_one()
     assert po.status == "completed", "分批入库完成后采购订单应为 completed"
     assert _balance(db_session, pid, wid) == Decimal("50.00"), "两次入库后库存应为 50"
 
     # 销售 20 出库
-    r = await auth_client.post(SALES_ORDERS, json={
+    r = await admin_client.post(SALES_ORDERS, json={
         "customer_id": cid, "warehouse_id": wid,
         "items": [{"product_id": pid, "quantity": "20", "unit_price": "12.00"}],
     })
     so_id = r.json()["data"]["id"]
     so_item_id = r.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{SALES_ORDERS}/{so_id}/submit")
-    await auth_client.post(f"{SALES_ORDERS}/{so_id}/approve")
+    await admin_client.post(f"{SALES_ORDERS}/{so_id}/submit")
+    await admin_client.post(f"{SALES_ORDERS}/{so_id}/approve")
 
-    r = await auth_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
+    r = await admin_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
         "items": [{"sales_order_item_id": so_item_id, "quantity": "20", "unit_price": "12.00"}],
     })
     out_id = r.json()["data"]["id"]
-    await auth_client.post(f"{SALES_OUTS}/{out_id}/confirm")
+    await admin_client.post(f"{SALES_OUTS}/{out_id}/confirm")
 
     so = db_session.execute(select(SalesOrder).where(SalesOrder.id == so_id)).scalar_one()
     assert so.status == "completed", "销售出库完成后订单应为 completed"
@@ -255,7 +255,7 @@ async def test_e2e_partial_purchase_then_sale(auth_client: AsyncClient, setup_e2
 
 
 @pytest.mark.asyncio
-async def test_e2e_insufficient_stock_blocks_sale(auth_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
+async def test_e2e_insufficient_stock_blocks_sale(admin_client: AsyncClient, setup_e2e_data: dict, db_session: Session):
     """不采购直接销售出库，验证超卖拦截、库存不变、无 OUT 流水。"""
     pid = setup_e2e_data["product_id"]
     wid = setup_e2e_data["warehouse_id"]
@@ -265,23 +265,23 @@ async def test_e2e_insufficient_stock_blocks_sale(auth_client: AsyncClient, setu
     assert _balance(db_session, pid, wid) == Decimal("0"), "初始库存应为 0"
 
     # 创建并审核销售订单
-    r = await auth_client.post(SALES_ORDERS, json={
+    r = await admin_client.post(SALES_ORDERS, json={
         "customer_id": cid, "warehouse_id": wid,
         "items": [{"product_id": pid, "quantity": "50", "unit_price": "15.00"}],
     })
     so_id = r.json()["data"]["id"]
     so_item_id = r.json()["data"]["items"][0]["id"]
-    await auth_client.post(f"{SALES_ORDERS}/{so_id}/submit")
-    await auth_client.post(f"{SALES_ORDERS}/{so_id}/approve")
+    await admin_client.post(f"{SALES_ORDERS}/{so_id}/submit")
+    await admin_client.post(f"{SALES_ORDERS}/{so_id}/approve")
 
     # 创建出库单
-    r = await auth_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
+    r = await admin_client.post(f"{SALES_ORDERS}/{so_id}/outs", json={
         "items": [{"sales_order_item_id": so_item_id, "quantity": "50", "unit_price": "15.00"}],
     })
     out_id = r.json()["data"]["id"]
 
     # 确认出库应被超卖拦截
-    r = await auth_client.post(f"{SALES_OUTS}/{out_id}/confirm")
+    r = await admin_client.post(f"{SALES_OUTS}/{out_id}/confirm")
     assert r.status_code == 200, "确认出库请求应返回 200"
     assert r.json()["code"] == 40001, f"库存不足应返回 40001，实际: {r.text}"
 
